@@ -1,1 +1,1 @@
-# stmat
+# STM: Space Time Matrix 
