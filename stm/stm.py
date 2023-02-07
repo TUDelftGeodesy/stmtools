@@ -149,18 +149,6 @@ class SpaceTimeMatrix:
 
         return xrds
 
-    def from_stack(self, stack_obj):
-        # Make  from a Stack Object
-        # EXMAPLE of a stack object: https://bitbucket.org/grsradartudelft/rippl/src/main/rippl/SAR_sensors/sentinel/sentinel_stack.py
-
-        return None
-
-    def query_polygon(self, polygon, field):
-        # query a field in the polygon with location of the points
-        # return the field value for each point
-
-        return None
-
 
 def check_mult_relops(string):
     relops = ["<", ">"]
