@@ -1,8 +1,17 @@
 import xarray as xr
+from rasterio import features
 import math
 import numpy as np
 import geopandas as gpd
+import affine
+from pathlib import Path
+from shapely.strtree import STRtree
+from shapely.geometry import Point
 
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Inspiration:
 #   - https://docs.xarray.dev/en/stable/internals/extending-xarray.html
@@ -85,6 +94,60 @@ class SpaceTimeMatrix:
                 ]
                 data_xr_subset = self._obj.sel(points=subset)
         return data_xr_subset
+
+    def geom_enrich(self, geom, fields, xlabel="lon", ylabel="lat"):
+        # Check if coordinatelabel exists
+        for clabel in [xlabel, ylabel]:
+            if clabel not in self._obj.coords.keys():
+                if clabel in self._obj.data_vars.keys():
+                    logger.warning(
+                        '"{}"was not found in coordinates, but in data variables. '
+                        "We will proceed with the data variable. "
+                        'Please consider registering "{}" in the coordinates.'.format(
+                            clabel, clabel
+                        )
+                    )
+                else:
+                    raise ValueError(
+                        'Coordinate label "{}" was not found.'.format(clabel)
+                    )
+
+        # Crop the geom to the bounding box of stm
+        xmin, ymin, xmax, ymax = [
+            self._obj[xlabel].data.min(),
+            self._obj[ylabel].data.min(),
+            self._obj[xlabel].data.max(),
+            self._obj[ylabel].data.max(),
+        ]
+        if isinstance(geom, gpd.GeoDataFrame):
+            geom = geom.clip_by_rect(xmin, ymin, xmax, ymax)
+        elif isinstance(geom, Path) or isinstance(geom, str):
+            geom = gpd.read_file(geom, bbox=(xmin, ymin, xmax, ymax))
+        else:
+            raise NotImplementedError(
+                "Cannot recognize the format of the geometry file."
+            )
+
+        # Build STR tree for points
+        pnttree = STRtree(
+            gpd.GeoSeries(
+                map(Point, zip(self._obj[xlabel].data, self._obj[ylabel].data))
+            )
+        )
+
+        intml = pnttree.query(geom.geometry, predicate='contains').T
+
+        xrds = self._obj.assign({fields: (['points'], np.full(self._obj.points.shape, None))})
+        if intml.ndim == 2: # geometry is an array_like
+            intuids = np.unique(intml[:,0])
+            for intuid in intuids:
+                intm = np.where(intml[:,0]==intuid)[0]
+                intmid = intml[intm,1]
+                xrds[fields].data[intmid] = geom.iloc[intuid][fields]
+        elif intml.ndim == 1: # geometry is a scalar
+            xrds[fields].data[intml] = geom[fields]
+
+        return xrds
 
     def from_stack(self, stack_obj):
         # Make  from a Stack Object
