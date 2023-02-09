@@ -35,9 +35,10 @@ class SpaceTimeMatrix:
         # Spatial query, by polygon, bounding box (priority)
         # Threshold Query
         # Density Query
+
         match method:  # Match statements available only from python 3.10 onwards
             case "threshold":
-                check_threshold_kwargs(
+                _check_threshold_kwargs(
                     **kwargs
                 )  # Check is all required kwargs are available
                 if kwargs["threshold"][0] == "<":
@@ -94,6 +95,23 @@ class SpaceTimeMatrix:
                     item for item in np.unique(raster) if not (math.isnan(item)) == True
                 ]
                 data_xr_subset = self._obj.sel(points=subset)
+            case "polygon":
+                _check_polygon_kwargs(**kwargs)
+                mask = self._obj.stm.geom_enrich(kwargs["polygon"], fields=None)
+                data_xr_subset = self._obj.where(mask)
+                data_xr_subset = data_xr_subset.dropna(dim="points", how="all")
+            case other:
+                raise NotImplementedError(
+                    "Method: {} is not implemented.".format(method)
+                )
+
+        chunks = {
+            "points": min(self._obj.chunksizes["points"][0], data_xr_subset.points.shape[0]),
+            "time": min(self._obj.chunksizes["time"][0], data_xr_subset.time.shape[0]),
+        }
+
+        data_xr_subset = data_xr_subset.chunk(chunks)
+
         return data_xr_subset
 
     def geom_enrich(self, geom, fields, xlabel="lon", ylabel="lat"):
@@ -227,8 +245,15 @@ def check_mult_relops(string):
             raise Exception("Multiple relational operators found! Please check input")
 
 
-def check_threshold_kwargs(**kwargs):
+def _check_threshold_kwargs(**kwargs):
     req_kwargs = ["var", "threshold"]
+    for i in req_kwargs:
+        if i not in kwargs:
+            raise Exception("Missing expected keyword argument: %s" % i)
+
+
+def _check_polygon_kwargs(**kwargs):
+    req_kwargs = ["polygon"]
     for i in req_kwargs:
         if i not in kwargs:
             raise Exception("Missing expected keyword argument: %s" % i)
