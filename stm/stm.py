@@ -7,7 +7,7 @@ import affine
 from pathlib import Path
 from shapely.strtree import STRtree
 from shapely.geometry import Point
-
+import dask.array as da
 
 import logging
 
@@ -103,7 +103,8 @@ class SpaceTimeMatrix:
                     logger.warning(
                         '"{}"was not found in coordinates, but in data variables. '
                         "We will proceed with the data variable. "
-                        'Please consider registering "{}" in the coordinates.'.format(
+                        'Please consider registering "{}" in the coordinates using '
+                        '"xarray.Dataset.assign".'.format(
                             clabel, clabel
                         )
                     )
@@ -112,42 +113,72 @@ class SpaceTimeMatrix:
                         'Coordinate label "{}" was not found.'.format(clabel)
                     )
 
-        # Crop the geom to the bounding box of stm
-        xmin, ymin, xmax, ymax = [
-            self._obj[xlabel].data.min(),
-            self._obj[ylabel].data.min(),
-            self._obj[xlabel].data.max(),
-            self._obj[ylabel].data.max(),
-        ]
+        # ToDo: check if field is a list or a str
+        
+        # ToDo: check if geom exists in the input
         if isinstance(geom, gpd.GeoDataFrame):
-            geom = geom.clip_by_rect(xmin, ymin, xmax, ymax)
+            type_geom = "GeoDataFrame"
         elif isinstance(geom, Path) or isinstance(geom, str):
-            geom = gpd.read_file(geom, bbox=(xmin, ymin, xmax, ymax))
+            type_geom = "File"
         else:
-            raise NotImplementedError(
-                "Cannot recognize the format of the geometry file."
+            raise NotImplementedError("Cannot recognize the input geometry.")
+
+        # Enrich all fields
+        chunks = (self._obj.chunksizes["points"][0],)
+        ds = self._obj
+        for field in fields:
+            # Assign an empty field
+            ds = ds.assign(
+                {
+                    field: (
+                        ["points"],
+                        da.from_array(
+                            np.full(self._obj.points.shape, None), chunks=chunks
+                        ),
+                    )
+                }
             )
-
-        # Build STR tree for points
-        pnttree = STRtree(
-            gpd.GeoSeries(
-                map(Point, zip(self._obj[xlabel].data, self._obj[ylabel].data))
+            da_field = ds[field].copy()
+            da_field = da_field.map_blocks(
+                _geom_enrich_block,
+                args=[geom, field, xlabel, ylabel, type_geom],
+                template=da_field,
             )
-        )
+            # ds[field] = da_field
+            ds = ds.assign({field: da_field})
 
-        intml = pnttree.query(geom.geometry, predicate='contains').T
+        return ds
 
-        xrds = self._obj.assign({fields: (['points'], np.full(self._obj.points.shape, None))})
-        if intml.ndim == 2: # geometry is an array_like
-            intuids = np.unique(intml[:,0])
-            for intuid in intuids:
-                intm = np.where(intml[:,0]==intuid)[0]
-                intmid = intml[intm,1]
-                xrds[fields].data[intmid] = geom.iloc[intuid][fields]
-        elif intml.ndim == 1: # geometry is a scalar
-            xrds[fields].data[intml] = geom[fields]
 
-        return xrds
+def _geom_enrich_block(da, geom, field, xlabel, ylabel, type_geom):
+    # Crop the geom to the bounding box of the block
+    xmin, ymin, xmax, ymax = [
+        da[xlabel].data.min(),
+        da[ylabel].data.min(),
+        da[xlabel].data.max(),
+        da[ylabel].data.max(),
+    ]
+    match type_geom:
+        case "GeoDataFrame":
+            geom = geom.clip_by_rect(xmin, ymin, xmax, ymax)
+        case "File":
+            geom = gpd.read_file(geom, bbox=(xmin, ymin, xmax, ymax))
+
+    # Build STR tree for points
+    pnttree = STRtree(gpd.GeoSeries(map(Point, zip(da[xlabel].data, da[ylabel].data))))
+
+    intml = pnttree.query(geom.geometry, predicate="contains").T
+
+    if intml.ndim == 2:  # geometry is an array_like
+        intuids = np.unique(intml[:, 0])
+        for intuid in intuids:
+            intm = np.where(intml[:, 0] == intuid)[0]
+            intmid = intml[intm, 1]
+            da.data[intmid] = geom.iloc[intuid][field]
+    elif intml.ndim == 1:  # geometry is a scalar
+        da.data[intml] = geom[field]
+
+    return da
 
 
 def check_mult_relops(string):
