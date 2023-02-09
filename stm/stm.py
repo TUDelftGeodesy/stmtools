@@ -7,6 +7,7 @@ import affine
 from pathlib import Path
 from shapely.strtree import STRtree
 from shapely.geometry import Point
+from collections.abc import Iterable
 import dask.array as da
 
 import logging
@@ -113,15 +114,26 @@ class SpaceTimeMatrix:
                         'Coordinate label "{}" was not found.'.format(clabel)
                     )
 
-        # ToDo: check if field is a list or a str
+        # Check if fields is a Iterable or a str
+        if isinstance(fields, str):
+            fields = [fields]
+        elif not isinstance(fields, Iterable):
+            raise ValueError('fields need to be a Iterable or a string')
         
-        # ToDo: check if geom exists in the input
+        # Get geom type and the first row 
         if isinstance(geom, gpd.GeoDataFrame):
             type_geom = "GeoDataFrame"
+            geom_one_row = geom.iloc[0]
         elif isinstance(geom, Path) or isinstance(geom, str):
             type_geom = "File"
+            geom_one_row = gpd.read_file(geom, rows=1)
         else:
             raise NotImplementedError("Cannot recognize the input geometry.")
+        
+        # Check if fields exists in geom
+        for field in fields:
+                if field not in geom_one_row.columns:
+                    raise ValueError('Field "{}" not found in the the input geometry'.format(field))
 
         # Enrich all fields
         chunks = (self._obj.chunksizes["points"][0],)
@@ -138,13 +150,12 @@ class SpaceTimeMatrix:
                     )
                 }
             )
-            da_field = ds[field].copy()
+            da_field = ds[field]
             da_field = da_field.map_blocks(
                 _geom_enrich_block,
                 args=[geom, field, xlabel, ylabel, type_geom],
                 template=da_field,
             )
-            # ds[field] = da_field
             ds = ds.assign({field: da_field})
 
         return ds
