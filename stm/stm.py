@@ -105,9 +105,7 @@ class SpaceTimeMatrix:
                         '"{}"was not found in coordinates, but in data variables. '
                         "We will proceed with the data variable. "
                         'Please consider registering "{}" in the coordinates using '
-                        '"xarray.Dataset.assign".'.format(
-                            clabel, clabel
-                        )
+                        '"xarray.Dataset.assign".'.format(clabel, clabel)
                     )
                 else:
                     raise ValueError(
@@ -115,50 +113,74 @@ class SpaceTimeMatrix:
                     )
 
         # Check if fields is a Iterable or a str
-        if isinstance(fields, str):
-            fields = [fields]
-        elif not isinstance(fields, Iterable):
-            raise ValueError('fields need to be a Iterable or a string')
-        
-        # Get geom type and the first row 
+        if fields is not None:
+            if isinstance(fields, str):
+                fields = [fields]
+            elif not isinstance(fields, Iterable):
+                raise ValueError("fields need to be a Iterable or a string")
+
+        # Get geom type and the first row
         if isinstance(geom, gpd.GeoDataFrame):
             type_geom = "GeoDataFrame"
-            geom_one_row = geom.iloc[0]
+            geom_one_row = geom.iloc[0:1]
         elif isinstance(geom, Path) or isinstance(geom, str):
             type_geom = "File"
             geom_one_row = gpd.read_file(geom, rows=1)
         else:
             raise NotImplementedError("Cannot recognize the input geometry.")
-        
+
         # Check if fields exists in geom
-        for field in fields:
+        if fields is not None:
+            for field in fields:
                 if field not in geom_one_row.columns:
-                    raise ValueError('Field "{}" not found in the the input geometry'.format(field))
+                    raise ValueError(
+                        'Field "{}" not found in the the input geometry'.format(field)
+                    )
 
         # Enrich all fields
         chunks = (self._obj.chunksizes["points"][0],)
         ds = self._obj
-        for field in fields:
-            # Assign an empty field
+        if fields is not None:
+            for field in fields:
+                # Assign an empty field
+                ds = ds.assign(
+                    {
+                        field: (
+                            ["points"],
+                            da.from_array(
+                                np.full(self._obj.points.shape, None), chunks=chunks
+                            ),
+                        )
+                    }
+                )
+                da_field = ds[field]
+                da_field = da_field.map_blocks(
+                    _geom_enrich_block,
+                    args=[geom, field, xlabel, ylabel, type_geom],
+                    template=da_field,
+                )
+                ds = ds.assign({field: da_field})
+
+            return ds
+
+        else:  # fields is None, return in polygon mask
             ds = ds.assign(
                 {
-                    field: (
+                    "in_polygon": (
                         ["points"],
                         da.from_array(
-                            np.full(self._obj.points.shape, None), chunks=chunks
+                            np.full(self._obj.points.shape, False), chunks=chunks
                         ),
                     )
                 }
             )
-            da_field = ds[field]
+            da_field = ds["in_polygon"]
             da_field = da_field.map_blocks(
                 _geom_enrich_block,
-                args=[geom, field, xlabel, ylabel, type_geom],
+                args=[geom, fields, xlabel, ylabel, type_geom],
                 template=da_field,
             )
-            ds = ds.assign({field: da_field})
-
-        return ds
+            return da_field
 
 
 def _geom_enrich_block(da, geom, field, xlabel, ylabel, type_geom):
@@ -185,9 +207,15 @@ def _geom_enrich_block(da, geom, field, xlabel, ylabel, type_geom):
         for intuid in intuids:
             intm = np.where(intml[:, 0] == intuid)[0]
             intmid = intml[intm, 1]
-            da.data[intmid] = geom.iloc[intuid][field]
+            if field is None:
+                da.data[intmid] = True
+            else:
+                da.data[intmid] = geom.iloc[intuid][field]
     elif intml.ndim == 1:  # geometry is a scalar
-        da.data[intml] = geom[field]
+        if field is None:
+            da.data[intmid] = True
+        else:
+            da.data[intml] = geom[field]
 
     return da
 
