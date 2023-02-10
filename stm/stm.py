@@ -115,27 +115,15 @@ class SpaceTimeMatrix:
         return data_xr_subset
 
     def geom_enrich(self, geom, fields, xlabel="lon", ylabel="lat"):
-        # Check if coordinatelabel exists
-        for clabel in [xlabel, ylabel]:
-            if clabel not in self._obj.coords.keys():
-                if clabel in self._obj.data_vars.keys():
-                    logger.warning(
-                        '"{}"was not found in coordinates, but in data variables. '
-                        "We will proceed with the data variable. "
-                        'Please consider registering "{}" in the coordinates using '
-                        '"xarray.Dataset.assign".'.format(clabel, clabel)
-                    )
-                else:
-                    raise ValueError(
-                        'Coordinate label "{}" was not found.'.format(clabel)
-                    )
+        
+        # Check if coords exists
+        _ = _validate_coords(self._obj, xlabel, ylabel)
 
         # Check if fields is a Iterable or a str
-        if fields is not None:
-            if isinstance(fields, str):
-                fields = [fields]
-            elif not isinstance(fields, Iterable):
-                raise ValueError("fields need to be a Iterable or a string")
+        if isinstance(fields, str):
+            fields = [fields]
+        elif not isinstance(fields, Iterable):
+            raise ValueError("fields need to be a Iterable or a string")
 
         # Get geom type and the first row
         if isinstance(geom, gpd.GeoDataFrame):
@@ -148,66 +136,97 @@ class SpaceTimeMatrix:
             raise NotImplementedError("Cannot recognize the input geometry.")
 
         # Check if fields exists in geom
-        if fields is not None:
-            for field in fields:
-                if field not in geom_one_row.columns:
-                    raise ValueError(
-                        'Field "{}" not found in the the input geometry'.format(field)
-                    )
+        for field in fields:
+            if field not in geom_one_row.columns:
+                raise ValueError(
+                    'Field "{}" not found in the the input geometry'.format(field)
+                )
 
         # Enrich all fields
-        chunks = (self._obj.chunksizes["points"][0],)
         ds = self._obj
-        if fields is not None:
-            for field in fields:
-                # Assign an empty field
-                ds = ds.assign(
-                    {
-                        field: (
-                            ["points"],
-                            da.from_array(
-                                np.full(self._obj.points.shape, None), chunks=chunks
-                            ),
-                        )
-                    }
-                )
-                da_field = ds[field]
-                da_field = da_field.map_blocks(
-                    _geom_enrich_block,
-                    args=[geom, field, xlabel, ylabel, type_geom],
-                    template=da_field,
-                )
-                ds = ds.assign({field: da_field})
-
-            return ds
-
-        else:  # fields is None, return in polygon mask
+        chunks = (ds.chunksizes["points"][0],) # Assign an empty fields to ds
+        for field in fields:
             ds = ds.assign(
                 {
-                    "in_polygon": (
+                    field: (
                         ["points"],
                         da.from_array(
-                            np.full(self._obj.points.shape, False), chunks=chunks
+                            np.full(ds.points.shape, None), chunks=chunks
                         ),
                     )
                 }
             )
-            da_field = ds["in_polygon"]
-            da_field = da_field.map_blocks(
-                _geom_enrich_block,
-                args=[geom, fields, xlabel, ylabel, type_geom],
-                template=da_field,
-            )
-            return da_field
+        ds = xr.map_blocks(_geom_enrich_block, ds, args=(geom, fields, xlabel, ylabel, type_geom), template=ds)
+
+        return ds
+
+    def _in_polygon(self, geom, xlabel="lon", ylabel="lat"):
+        # Check if coords exists
+        _ = _validate_coords(self._obj, xlabel, ylabel)
+
+        # Get geom type and the first row
+        if isinstance(geom, gpd.GeoDataFrame):
+            type_geom = "GeoDataFrame"
+        elif isinstance(geom, Path) or isinstance(geom, str):
+            type_geom = "File"
+        else:
+            raise NotImplementedError("Cannot recognize the input geometry.")
+
+        # Enrich all fields
+        ds = self._obj
+        chunks = (ds.chunksizes["points"][0],) # Assign an empty fields to ds
+        ds = ds.assign(
+            {
+                "mask": (
+                    ["points"],
+                    da.from_array(
+                        np.full(ds.points.shape, None), chunks=chunks
+                    ),
+                )
+            }
+        )
+        mask = ds["mask"]
+        mask = xr.map_blocks(_in_polygon_block, mask, args=(geom, xlabel, ylabel, type_geom), template=mask)
+
+        return mask
+
+def _in_polygon_block(mask, geom, xlabel, ylabel, type_geom):
+    match_list, _ = _ml_str_query(mask, geom, xlabel, ylabel, type_geom)
+    intmid = np.unique(match_list[:, 1]) # incase overlapping polygons
+    mask.data[intmid] = True
+    
+    return mask
 
 
-def _geom_enrich_block(da, geom, field, xlabel, ylabel, type_geom):
+def _geom_enrich_block(ds, geom, fields, xlabel, ylabel, type_geom):
+
+    # Get the match list
+    match_list, geom = _ml_str_query(ds, geom, xlabel, ylabel, type_geom)
+
+    if match_list.ndim == 2:  # geometry is an array_like
+        intuids = np.unique(match_list[:, 0])
+        for intuid in intuids:
+            intm = np.where(match_list[:, 0] == intuid)[0]
+            intmid = match_list[intm, 1]
+            for field in fields:
+                ds[field].data[intmid] = geom.iloc[intuid][field]
+    elif match_list.ndim == 1:  # geometry is a scalar
+        ds[field].data[intmid] = geom[field]
+
+    return ds
+
+def _ml_str_query(dsda, geom, xlabel, ylabel, type_geom):
+    # Get the match list from STR query
+    #this returns an array of two element arrays, the first entry is the positional index
+    #into the list of geometries being used to query the tree. the second is the positional index
+    #into the list of points for which the tree was constructed
+
     # Crop the geom to the bounding box of the block
     xmin, ymin, xmax, ymax = [
-        da[xlabel].data.min(),
-        da[ylabel].data.min(),
-        da[xlabel].data.max(),
-        da[ylabel].data.max(),
+        dsda[xlabel].data.min(),
+        dsda[ylabel].data.min(),
+        dsda[xlabel].data.max(),
+        dsda[ylabel].data.max(),
     ]
     match type_geom:
         case "GeoDataFrame":
@@ -216,27 +235,11 @@ def _geom_enrich_block(da, geom, field, xlabel, ylabel, type_geom):
             geom = gpd.read_file(geom, bbox=(xmin, ymin, xmax, ymax))
 
     # Build STR tree for points
-    pnttree = STRtree(gpd.GeoSeries(map(Point, zip(da[xlabel].data, da[ylabel].data))))
+    pnttree = STRtree(gpd.GeoSeries(map(Point, zip(dsda[xlabel].data, dsda[ylabel].data))))
 
-    intml = pnttree.query(geom.geometry, predicate="contains").T
+    match_list = pnttree.query(geom.geometry, predicate="contains").T
 
-    if intml.ndim == 2:  # geometry is an array_like
-        intuids = np.unique(intml[:, 0])
-        for intuid in intuids:
-            intm = np.where(intml[:, 0] == intuid)[0]
-            intmid = intml[intm, 1]
-            if field is None:
-                da.data[intmid] = True
-            else:
-                da.data[intmid] = geom.iloc[intuid][field]
-    elif intml.ndim == 1:  # geometry is a scalar
-        if field is None:
-            da.data[intmid] = True
-        else:
-            da.data[intml] = geom[field]
-
-    return da
-
+    return match_list, geom
 
 def check_mult_relops(string):
     relops = ["<", ">"]
@@ -269,3 +272,23 @@ def check_density_kwargs(**kwargs):
                 raise Exception(
                     "Keyword argument %s should be an floating point number" % i
                 )
+
+def _validate_coords(ds, xlabel, ylabel):
+        # Check if dataset has xlabel and ylabel
+
+        # Check if coordinate label exists
+        for clabel in [xlabel, ylabel]:
+            if clabel not in ds.coords.keys():
+                if clabel in ds.data_vars.keys():
+                    logger.warning(
+                        '"{}"was not found in coordinates, but in data variables. '
+                        "We will proceed with the data variable. "
+                        'Please consider registering "{}" in the coordinates using '
+                        '"xarray.Dataset.assign".'.format(clabel, clabel)
+                    )
+                    return 2
+                else:
+                    raise ValueError(
+                        'Coordinate label "{}" was not found.'.format(clabel)
+                    )    
+        return 1
