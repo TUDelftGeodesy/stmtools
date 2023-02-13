@@ -97,16 +97,19 @@ class SpaceTimeMatrix:
                 data_xr_subset = self._obj.sel(points=subset)
             case "polygon":
                 _check_polygon_kwargs(**kwargs)
-                mask = self._obj.stm.geom_enrich(kwargs["polygon"], fields=None)
-                data_xr_subset = self._obj.where(mask)
-                data_xr_subset = data_xr_subset.dropna(dim="points", how="all")
+                mask = self._obj.stm._in_polygon(
+                    kwargs["polygon"], xlabel="lon", ylabel="lat"
+                )
+                idx = self._obj.points.data[mask.data]
+                data_xr_subset = self._obj.sel(points=idx)
             case other:
                 raise NotImplementedError(
                     "Method: {} is not implemented.".format(method)
                 )
-
         chunks = {
-            "points": min(self._obj.chunksizes["points"][0], data_xr_subset.points.shape[0]),
+            "points": min(
+                self._obj.chunksizes["points"][0], data_xr_subset.points.shape[0]
+            ),
             "time": min(self._obj.chunksizes["time"][0], data_xr_subset.time.shape[0]),
         }
 
@@ -115,7 +118,6 @@ class SpaceTimeMatrix:
         return data_xr_subset
 
     def geom_enrich(self, geom, fields, xlabel="lon", ylabel="lat"):
-        
         # Check if coords exists
         _ = _validate_coords(self._obj, xlabel, ylabel)
 
@@ -144,19 +146,22 @@ class SpaceTimeMatrix:
 
         # Enrich all fields
         ds = self._obj
-        chunks = (ds.chunksizes["points"][0],) # Assign an empty fields to ds
+        chunks = (ds.chunksizes["points"][0],)  # Assign an empty fields to ds
         for field in fields:
             ds = ds.assign(
                 {
                     field: (
                         ["points"],
-                        da.from_array(
-                            np.full(ds.points.shape, None), chunks=chunks
-                        ),
+                        da.from_array(np.full(ds.points.shape, None), chunks=chunks),
                     )
                 }
             )
-        ds = xr.map_blocks(_geom_enrich_block, ds, args=(geom, fields, xlabel, ylabel, type_geom), template=ds)
+        ds = xr.map_blocks(
+            _geom_enrich_block,
+            ds,
+            args=(geom, fields, xlabel, ylabel, type_geom),
+            template=ds,
+        )
 
         return ds
 
@@ -174,32 +179,35 @@ class SpaceTimeMatrix:
 
         # Enrich all fields
         ds = self._obj
-        chunks = (ds.chunksizes["points"][0],) # Assign an empty fields to ds
+        chunks = (ds.chunksizes["points"][0],)  # Assign an empty fields to ds
         ds = ds.assign(
             {
                 "mask": (
                     ["points"],
-                    da.from_array(
-                        np.full(ds.points.shape, None), chunks=chunks
-                    ),
+                    da.from_array(np.full(ds.points.shape, False), chunks=chunks),
                 )
             }
         )
         mask = ds["mask"]
-        mask = xr.map_blocks(_in_polygon_block, mask, args=(geom, xlabel, ylabel, type_geom), template=mask)
+        mask = xr.map_blocks(
+            _in_polygon_block,
+            mask,
+            args=(geom, xlabel, ylabel, type_geom),
+            template=mask,
+        )
 
         return mask
 
+
 def _in_polygon_block(mask, geom, xlabel, ylabel, type_geom):
     match_list, _ = _ml_str_query(mask, geom, xlabel, ylabel, type_geom)
-    intmid = np.unique(match_list[:, 1]) # incase overlapping polygons
+    intmid = np.unique(match_list[:, 1])  # incase overlapping polygons
     mask.data[intmid] = True
-    
+
     return mask
 
 
 def _geom_enrich_block(ds, geom, fields, xlabel, ylabel, type_geom):
-
     # Get the match list
     match_list, geom = _ml_str_query(ds, geom, xlabel, ylabel, type_geom)
 
@@ -215,11 +223,12 @@ def _geom_enrich_block(ds, geom, fields, xlabel, ylabel, type_geom):
 
     return ds
 
+
 def _ml_str_query(dsda, geom, xlabel, ylabel, type_geom):
-    # Get the match list from STR query
-    #this returns an array of two element arrays, the first entry is the positional index
-    #into the list of geometries being used to query the tree. the second is the positional index
-    #into the list of points for which the tree was constructed
+    # Get the match list from Sort-Tile-Recursive (STR) query
+    # this returns an array of two element arrays, the first entry is the positional index
+    # into the list of geometries being used to query the tree. the second is the positional index
+    # into the list of points for which the tree was constructed
 
     # Crop the geom to the bounding box of the block
     xmin, ymin, xmax, ymax = [
@@ -235,11 +244,14 @@ def _ml_str_query(dsda, geom, xlabel, ylabel, type_geom):
             geom = gpd.read_file(geom, bbox=(xmin, ymin, xmax, ymax))
 
     # Build STR tree for points
-    pnttree = STRtree(gpd.GeoSeries(map(Point, zip(dsda[xlabel].data, dsda[ylabel].data))))
+    pnttree = STRtree(
+        gpd.GeoSeries(map(Point, zip(dsda[xlabel].data, dsda[ylabel].data)))
+    )
 
     match_list = pnttree.query(geom.geometry, predicate="contains").T
 
     return match_list, geom
+
 
 def check_mult_relops(string):
     relops = ["<", ">"]
@@ -273,22 +285,20 @@ def check_density_kwargs(**kwargs):
                     "Keyword argument %s should be an floating point number" % i
                 )
 
-def _validate_coords(ds, xlabel, ylabel):
-        # Check if dataset has xlabel and ylabel
 
-        # Check if coordinate label exists
-        for clabel in [xlabel, ylabel]:
-            if clabel not in ds.coords.keys():
-                if clabel in ds.data_vars.keys():
-                    logger.warning(
-                        '"{}"was not found in coordinates, but in data variables. '
-                        "We will proceed with the data variable. "
-                        'Please consider registering "{}" in the coordinates using '
-                        '"xarray.Dataset.assign".'.format(clabel, clabel)
-                    )
-                    return 2
-                else:
-                    raise ValueError(
-                        'Coordinate label "{}" was not found.'.format(clabel)
-                    )    
-        return 1
+def _validate_coords(ds, xlabel, ylabel):
+    # Check if dataset has xlabel and ylabel
+
+    for clabel in [xlabel, ylabel]:
+        if clabel not in ds.coords.keys():
+            if clabel in ds.data_vars.keys():
+                logger.warning(
+                    '"{}"was not found in coordinates, but in data variables. '
+                    "We will proceed with the data variable. "
+                    'Please consider registering "{}" in the coordinates using '
+                    '"xarray.Dataset.assign".'.format(clabel, clabel)
+                )
+                return 2
+            else:
+                raise ValueError('Coordinate label "{}" was not found.'.format(clabel))
+    return 1
