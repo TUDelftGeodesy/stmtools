@@ -21,16 +21,61 @@ logger = logging.getLogger(__name__)
 
 @xr.register_dataset_accessor("stm")
 class SpaceTimeMatrix:
+    """
+    Space-Time Matrix
+    """
+
     def __init__(self, xarray_obj):
         self._obj = xarray_obj
 
     def add_metadata(self, metadata):
-        # Example function to demonstrate the composition of xr.Dataset
-        # Can be removed later
-        self._obj = self._obj.assign_attrs(metadata)
-        return self._obj.copy()
+        """
+        Assign metadata to the STM.
 
-    def subset(self, method, **kwargs):
+        Parameters
+        ----------
+        metadata : str or dict
+            input metadata
+
+        Returns
+        -------
+        xarray.Dataset
+            STM with assigned attributes.
+        """
+        self._obj = self._obj.assign_attrs(metadata)
+        return self._obj
+
+    def subset(self, method: str, **kwargs):
+        """
+        Select a subset of the STM
+
+        Parameters
+        ----------
+        method : str
+            Method of subsetting. Choose from "threshold", "density" and "polygon".
+            - threshold: select all points with a threshold criterion, e.g. 
+                data_xr.stm.subset(method="threshold", var="thres", threshold='>1')
+            - density: select one point in every [dx, dy] cell, e.g. 
+                data_xr.stm.subset(method='density', dx=0.1, dy=0.1)
+            - polygon: selecy all points inside a given polygon, e.g.
+                data_xr.stm.subset(method='polygon', polygon=path_polygon_file)
+                or
+                import geopandas as gpd
+                polygon = gpd.read_file(path_polygon_file)
+                data_xr.stm.subset(method='polygon', polygon=polygon)
+
+        Returns
+        -------
+        xarray.Dataset
+            A subset of original STM
+
+        Raises
+        ------
+        Exception
+            _description_
+        NotImplementedError
+            _description_
+        """
         # To be implemented
         # Spatial query, by polygon, bounding box (priority)
         # Threshold Query
