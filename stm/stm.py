@@ -53,9 +53,9 @@ class SpaceTimeMatrix:
         ----------
         method : str
             Method of subsetting. Choose from "threshold", "density" and "polygon".
-            - threshold: select all points with a threshold criterion, e.g. 
+            - threshold: select all points with a threshold criterion, e.g.
                 data_xr.stm.subset(method="threshold", var="thres", threshold='>1')
-            - density: select one point in every [dx, dy] cell, e.g. 
+            - density: select one point in every [dx, dy] cell, e.g.
                 data_xr.stm.subset(method='density', dx=0.1, dy=0.1)
             - polygon: select all points inside a given polygon, e.g.
                 data_xr.stm.subset(method='polygon', polygon=path_polygon_file)
@@ -68,13 +68,6 @@ class SpaceTimeMatrix:
         -------
         xarray.Dataset
             A subset of the original STM.
-
-        Raises
-        ------
-        Exception
-            _description_
-        NotImplementedError
-            _description_
         """
 
         match method:  # Match statements available only from python 3.10 onwards
@@ -160,19 +153,18 @@ class SpaceTimeMatrix:
 
     def enrich_from_polygon(self, polygon, fields, xlabel="lon", ylabel="lat"):
         """
-        Enrich the STM from one or more atrribute fields of a (muli-)polygon.
+        Enrich the SpaceTimeMatrix from one or more attribute fields of a (multi-)polygon.
 
         Each attribute in fields will be assigned as a data variable to the STM.
-        If a point of the STM falls into the given polygon, the value of the 
-        specified field will be added. For points outside the (muli-)polygon, 
+        If a point of the STM falls into the given polygon, the value of the specified field will be added. For points outside the (multi-)polygon,
         the value will be None.
 
         Parameters
         ----------
-        polygon : pandas.GeoDataFrame, str, or pathlib.Path 
-            Polygon or multi-polygon with contextual information for enrichment.
+        polygon : geopandas.GeoDataFrame, str, or pathlib.Path
+            Polygon or multi-polygon with contextual information for enrichment
         fields : str or list of str
-            Field name(s) in the (multi-)polygon for enrichment 
+            Field name(s) in the (multi-)polygon for enrichment
         xlabel : str, optional
             Name of the x-coordinates of the STM, by default "lon"
         ylabel : str, optional
@@ -180,17 +172,8 @@ class SpaceTimeMatrix:
 
         Returns
         -------
-        _type_
-            _description_
-
-        Raises
-        ------
-        ValueError
-            _description_
-        NotImplementedError
-            _description_
-        ValueError
-            _description_
+        xarray.Dataset
+            Enriched STM.
         """
         _ = _validate_coords(self._obj, xlabel, ylabel)
 
@@ -239,6 +222,24 @@ class SpaceTimeMatrix:
         return ds
 
     def _in_polygon(self, polygon, xlabel="lon", ylabel="lat"):
+        """
+        Test if points of a STM is inside a given (multi-polygon) and return result as a boolean Dask array.
+
+        Parameters
+        ----------
+        polygon : geopandas.GeoDataFrame, str, or pathlib.Path
+            Polygon or multi-polygon for query
+        xlabel : str, optional
+            Name of the x-coordinates of the STM, by default "lon"
+        ylabel : str, optional
+            Name of the y-coordinates of the STM, by default "lat"
+
+        Returns
+        -------
+        Dask.array
+            A boolean Dask array. True where points are inside the (multi-)polygon.
+        """
+
         # Check if coords exists
         _ = _validate_coords(self._obj, xlabel, ylabel)
 
@@ -273,7 +274,10 @@ class SpaceTimeMatrix:
 
 
 def _in_polygon_block(mask, polygon, xlabel, ylabel, type_polygon):
-    match_list, _ = _ml_str_query(mask, polygon, xlabel, ylabel, type_polygon)
+    """
+    Block-wise function for "_in_polygon".
+    """
+    match_list, _ = _ml_str_query(mask[xlabel], mask[ylabel], polygon, type_polygon)
     intmid = np.unique(match_list[:, 1])  # incase overlapping polygons
     mask.data[intmid] = True
 
@@ -281,8 +285,12 @@ def _in_polygon_block(mask, polygon, xlabel, ylabel, type_polygon):
 
 
 def _enrich_from_polygon_block(ds, polygon, fields, xlabel, ylabel, type_polygon):
+    """
+    Block-wise function for "enrich_from_polygon".
+    """
+
     # Get the match list
-    match_list, polygon = _ml_str_query(ds, polygon, xlabel, ylabel, type_polygon)
+    match_list, polygon = _ml_str_query(ds[xlabel], ds[ylabel], polygon, type_polygon)
 
     if match_list.ndim == 2:  # multi-polygon
         intuids = np.unique(match_list[:, 0])
@@ -297,18 +305,33 @@ def _enrich_from_polygon_block(ds, polygon, fields, xlabel, ylabel, type_polygon
     return ds
 
 
-def _ml_str_query(dsda, polygon, xlabel, ylabel, type_polygon):
-    # Get the match list from Sort-Tile-Recursive (STR) query
-    # this returns an array of two element arrays, the first entry is the positional index
-    # into the list of geometries being used to query the tree. the second is the positional index
-    # into the list of points for which the tree was constructed
+def _ml_str_query(xx, yy, polygon, type_polygon):
+    """
+    Test if a set of points is inside a (multi-)polygon using Sort-Tile-Recursive (STR) query, Get the match list.
+
+    Parameters
+    ----------
+    xx : array_like
+        Vector array of the x coordinates of the points
+    yy : array_like
+        Vector array of the y coordinates of the points
+    polygon : geopandas.GeoDataFrame, str, or pathlib.Path
+        Polygon or multi-polygon for query
+    type_polygon : str
+        Choose from "GeoDataFrame" or "File"
+
+    Returns
+    -------
+    array_like
+        An array with two columns. The first column is the positional index into the list of polygons being used to query the tree. The second column is the positional index into the list of points for which the tree was constructed.
+    """
 
     # Crop the polygon to the bounding box of the block
     xmin, ymin, xmax, ymax = [
-        dsda[xlabel].data.min(),
-        dsda[ylabel].data.min(),
-        dsda[xlabel].data.max(),
-        dsda[ylabel].data.max(),
+        xx.data.min(),
+        yy.data.min(),
+        xx.data.max(),
+        yy.data.max(),
     ]
     match type_polygon:
         case "GeoDataFrame":
@@ -317,9 +340,7 @@ def _ml_str_query(dsda, polygon, xlabel, ylabel, type_polygon):
             polygon = gpd.read_file(polygon, bbox=(xmin, ymin, xmax, ymax))
 
     # Build STR tree for points
-    pnttree = STRtree(
-        gpd.GeoSeries(map(Point, zip(dsda[xlabel].data, dsda[ylabel].data)))
-    )
+    pnttree = STRtree(gpd.GeoSeries(map(Point, zip(xx.data, yy.data))))
 
     match_list = pnttree.query(polygon.geometry, predicate="contains").T
 
@@ -360,7 +381,28 @@ def check_density_kwargs(**kwargs):
 
 
 def _validate_coords(ds, xlabel, ylabel):
-    # Check if dataset has xlabel and ylabel
+    """
+    Check if dataset has coordinates xlabel and ylabel
+
+    Parameters
+    ----------
+    ds : xarray.dataset
+        dataset to query
+    xlabel : str
+        Name of x coordinates
+    ylabel : str
+        Name of y coordinates
+
+    Returns
+    -------
+    int
+        If xlabel and ylabel are in the coordinates of ds, return 1. If the they are in the data variables, return 2 and raise a warning
+    
+    Raises
+    ------
+    ValueError
+        If xlabel or ylabel neither exists in coordinates, raise ValueError 
+    """
 
     for clabel in [xlabel, ylabel]:
         if clabel not in ds.coords.keys():
