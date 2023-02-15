@@ -57,7 +57,7 @@ class SpaceTimeMatrix:
                 data_xr.stm.subset(method="threshold", var="thres", threshold='>1')
             - density: select one point in every [dx, dy] cell, e.g. 
                 data_xr.stm.subset(method='density', dx=0.1, dy=0.1)
-            - polygon: selecy all points inside a given polygon, e.g.
+            - polygon: select all points inside a given polygon, e.g.
                 data_xr.stm.subset(method='polygon', polygon=path_polygon_file)
                 or
                 import geopandas as gpd
@@ -67,7 +67,7 @@ class SpaceTimeMatrix:
         Returns
         -------
         xarray.Dataset
-            A subset of original STM
+            A subset of the original STM.
 
         Raises
         ------
@@ -76,10 +76,6 @@ class SpaceTimeMatrix:
         NotImplementedError
             _description_
         """
-        # To be implemented
-        # Spatial query, by polygon, bounding box (priority)
-        # Threshold Query
-        # Density Query
 
         match method:  # Match statements available only from python 3.10 onwards
             case "threshold":
@@ -162,8 +158,40 @@ class SpaceTimeMatrix:
 
         return data_xr_subset
 
-    def geom_enrich(self, geom, fields, xlabel="lon", ylabel="lat"):
-        # Check if coords exists
+    def enrich_from_polygon(self, polygon, fields, xlabel="lon", ylabel="lat"):
+        """
+        Enrich the STM from one or more atrribute fields of a (muli-)polygon.
+
+        Each attribute in fields will be assigned as a data variable to the STM.
+        If a point of the STM falls into the given polygon, the value of the 
+        specified field will be added. For points outside the (muli-)polygon, 
+        the value will be None.
+
+        Parameters
+        ----------
+        polygon : pandas.GeoDataFrame, str, or pathlib.Path 
+            Polygon or multi-polygon with contextual information for enrichment.
+        fields : str or list of str
+            Field name(s) in the (multi-)polygon for enrichment 
+        xlabel : str, optional
+            Name of the x-coordinates of the STM, by default "lon"
+        ylabel : str, optional
+            Name of the y-coordinates of the STM, by default "lat"
+
+        Returns
+        -------
+        _type_
+            _description_
+
+        Raises
+        ------
+        ValueError
+            _description_
+        NotImplementedError
+            _description_
+        ValueError
+            _description_
+        """
         _ = _validate_coords(self._obj, xlabel, ylabel)
 
         # Check if fields is a Iterable or a str
@@ -172,21 +200,21 @@ class SpaceTimeMatrix:
         elif not isinstance(fields, Iterable):
             raise ValueError("fields need to be a Iterable or a string")
 
-        # Get geom type and the first row
-        if isinstance(geom, gpd.GeoDataFrame):
-            type_geom = "GeoDataFrame"
-            geom_one_row = geom.iloc[0:1]
-        elif isinstance(geom, Path) or isinstance(geom, str):
-            type_geom = "File"
-            geom_one_row = gpd.read_file(geom, rows=1)
+        # Get polygon type and the first row
+        if isinstance(polygon, gpd.GeoDataFrame):
+            type_polygon = "GeoDataFrame"
+            polygon_one_row = polygon.iloc[0:1]
+        elif isinstance(polygon, Path) or isinstance(polygon, str):
+            type_polygon = "File"
+            polygon_one_row = gpd.read_file(polygon, rows=1)
         else:
-            raise NotImplementedError("Cannot recognize the input geometry.")
+            raise NotImplementedError("Cannot recognize the input polygon.")
 
-        # Check if fields exists in geom
+        # Check if fields exists in polygon
         for field in fields:
-            if field not in geom_one_row.columns:
+            if field not in polygon_one_row.columns:
                 raise ValueError(
-                    'Field "{}" not found in the the input geometry'.format(field)
+                    'Field "{}" not found in the the input polygon'.format(field)
                 )
 
         # Enrich all fields
@@ -202,25 +230,25 @@ class SpaceTimeMatrix:
                 }
             )
         ds = xr.map_blocks(
-            _geom_enrich_block,
+            _enrich_from_polygon_block,
             ds,
-            args=(geom, fields, xlabel, ylabel, type_geom),
+            args=(polygon, fields, xlabel, ylabel, type_polygon),
             template=ds,
         )
 
         return ds
 
-    def _in_polygon(self, geom, xlabel="lon", ylabel="lat"):
+    def _in_polygon(self, polygon, xlabel="lon", ylabel="lat"):
         # Check if coords exists
         _ = _validate_coords(self._obj, xlabel, ylabel)
 
-        # Get geom type and the first row
-        if isinstance(geom, gpd.GeoDataFrame):
-            type_geom = "GeoDataFrame"
-        elif isinstance(geom, Path) or isinstance(geom, str):
-            type_geom = "File"
+        # Get polygon type and the first row
+        if isinstance(polygon, gpd.GeoDataFrame):
+            type_polygon = "GeoDataFrame"
+        elif isinstance(polygon, Path) or isinstance(polygon, str):
+            type_polygon = "File"
         else:
-            raise NotImplementedError("Cannot recognize the input geometry.")
+            raise NotImplementedError("Cannot recognize the input polygon.")
 
         # Enrich all fields
         ds = self._obj
@@ -237,65 +265,65 @@ class SpaceTimeMatrix:
         mask = xr.map_blocks(
             _in_polygon_block,
             mask,
-            args=(geom, xlabel, ylabel, type_geom),
+            args=(polygon, xlabel, ylabel, type_polygon),
             template=mask,
         )
 
         return mask
 
 
-def _in_polygon_block(mask, geom, xlabel, ylabel, type_geom):
-    match_list, _ = _ml_str_query(mask, geom, xlabel, ylabel, type_geom)
+def _in_polygon_block(mask, polygon, xlabel, ylabel, type_polygon):
+    match_list, _ = _ml_str_query(mask, polygon, xlabel, ylabel, type_polygon)
     intmid = np.unique(match_list[:, 1])  # incase overlapping polygons
     mask.data[intmid] = True
 
     return mask
 
 
-def _geom_enrich_block(ds, geom, fields, xlabel, ylabel, type_geom):
+def _enrich_from_polygon_block(ds, polygon, fields, xlabel, ylabel, type_polygon):
     # Get the match list
-    match_list, geom = _ml_str_query(ds, geom, xlabel, ylabel, type_geom)
+    match_list, polygon = _ml_str_query(ds, polygon, xlabel, ylabel, type_polygon)
 
-    if match_list.ndim == 2:  # geometry is an array_like
+    if match_list.ndim == 2:  # multi-polygon
         intuids = np.unique(match_list[:, 0])
         for intuid in intuids:
             intm = np.where(match_list[:, 0] == intuid)[0]
             intmid = match_list[intm, 1]
             for field in fields:
-                ds[field].data[intmid] = geom.iloc[intuid][field]
-    elif match_list.ndim == 1:  # geometry is a scalar
-        ds[field].data[intmid] = geom[field]
+                ds[field].data[intmid] = polygon.iloc[intuid][field]
+    elif match_list.ndim == 1:  # one polygon
+        ds[field].data[intmid] = polygon[field]
 
     return ds
 
 
-def _ml_str_query(dsda, geom, xlabel, ylabel, type_geom):
+def _ml_str_query(dsda, polygon, xlabel, ylabel, type_polygon):
     # Get the match list from Sort-Tile-Recursive (STR) query
     # this returns an array of two element arrays, the first entry is the positional index
     # into the list of geometries being used to query the tree. the second is the positional index
     # into the list of points for which the tree was constructed
 
-    # Crop the geom to the bounding box of the block
+    # Crop the polygon to the bounding box of the block
     xmin, ymin, xmax, ymax = [
         dsda[xlabel].data.min(),
         dsda[ylabel].data.min(),
         dsda[xlabel].data.max(),
         dsda[ylabel].data.max(),
     ]
-    match type_geom:
+    match type_polygon:
         case "GeoDataFrame":
-            geom = geom.clip_by_rect(xmin, ymin, xmax, ymax)
+            polygon = polygon.clip_by_rect(xmin, ymin, xmax, ymax)
         case "File":
-            geom = gpd.read_file(geom, bbox=(xmin, ymin, xmax, ymax))
+            polygon = gpd.read_file(polygon, bbox=(xmin, ymin, xmax, ymax))
 
     # Build STR tree for points
     pnttree = STRtree(
         gpd.GeoSeries(map(Point, zip(dsda[xlabel].data, dsda[ylabel].data)))
     )
 
-    match_list = pnttree.query(geom.geometry, predicate="contains").T
+    match_list = pnttree.query(polygon.geometry, predicate="contains").T
 
-    return match_list, geom
+    return match_list, polygon
 
 
 def check_mult_relops(string):
