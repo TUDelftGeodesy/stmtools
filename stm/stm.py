@@ -156,8 +156,7 @@ class SpaceTimeMatrix:
         Enrich the SpaceTimeMatrix from one or more attribute fields of a (multi-)polygon.
 
         Each attribute in fields will be assigned as a data variable to the STM.
-        If a point of the STM falls into the given polygon, the value of the specified field will be added. For points outside the (multi-)polygon,
-        the value will be None.
+        If a point of the STM falls into the given polygon, the value of the specified field will be added. For points outside the (multi-)polygon, the value will be None.
 
         Parameters
         ----------
@@ -292,17 +291,17 @@ def _enrich_from_polygon_block(ds, polygon, fields, xlabel, ylabel, type_polygon
     # Get the match list
     match_list, polygon = _ml_str_query(ds[xlabel], ds[ylabel], polygon, type_polygon)
 
-    if match_list.ndim == 2:  # multi-polygon
+    _ds = ds.copy(deep=True)
+
+    if match_list.ndim == 2:
         intuids = np.unique(match_list[:, 0])
         for intuid in intuids:
             intm = np.where(match_list[:, 0] == intuid)[0]
             intmid = match_list[intm, 1]
             for field in fields:
-                ds[field].data[intmid] = polygon.iloc[intuid][field]
-    elif match_list.ndim == 1:  # one polygon
-        ds[field].data[intmid] = polygon[field]
+                _ds[field].data[intmid] = polygon.iloc[intuid][field]
 
-    return ds
+    return _ds
 
 
 def _ml_str_query(xx, yy, polygon, type_polygon):
@@ -335,7 +334,7 @@ def _ml_str_query(xx, yy, polygon, type_polygon):
     ]
     match type_polygon:
         case "GeoDataFrame":
-            polygon = polygon.clip_by_rect(xmin, ymin, xmax, ymax)
+            polygon = polygon.cx[xmin:xmax, ymin:ymax]
         case "File":
             polygon = gpd.read_file(polygon, bbox=(xmin, ymin, xmax, ymax))
 
