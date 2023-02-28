@@ -101,6 +101,7 @@ class SpaceTimeMatrix:
                         self._obj[kwargs["x"]], self._obj[kwargs["y"]]
                     ),
                 )
+                # Make a 2D grid based on the points coverage and input density threshold
                 grid_cell = ((shapes) for shapes in zip(gdf.geometry, gdf.index))
                 out_x = math.ceil(
                     (max(self._obj[kwargs["x"]]) - min(self._obj[kwargs["x"]]))
@@ -110,6 +111,9 @@ class SpaceTimeMatrix:
                     (max(self._obj[kwargs["y"]]) - min(self._obj[kwargs["y"]]))
                     / kwargs["dy"]
                 )
+                # Rasterize the points
+                # If multiple points in one gridcell, only the first point will be recorded
+                # In this way one point is selected per gridcell
                 raster = features.rasterize(
                     shapes=grid_cell,
                     out_shape=[out_x, out_y],
@@ -125,6 +129,7 @@ class SpaceTimeMatrix:
                         -1 * kwargs["dy"],
                     ),
                 )
+                # Select by rasterization results
                 subset = [
                     item for item in np.unique(raster) if not (math.isnan(item)) == True
                 ]
@@ -396,11 +401,11 @@ def _validate_coords(ds, xlabel, ylabel):
     -------
     int
         If xlabel and ylabel are in the coordinates of ds, return 1. If the they are in the data variables, return 2 and raise a warning
-    
+
     Raises
     ------
     ValueError
-        If xlabel or ylabel neither exists in coordinates, raise ValueError 
+        If xlabel or ylabel neither exists in coordinates, raise ValueError
     """
 
     for clabel in [xlabel, ylabel]:
