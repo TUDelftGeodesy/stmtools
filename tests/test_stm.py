@@ -25,7 +25,6 @@ def stmat():
         coords=dict(
             lon=(["points"], da.arange(npoints)),
             lat=(["points"], da.arange(npoints)),
-            points=(["points"], np.arange(npoints)),
             time=(["time"], np.arange(ntime)),
         ),
     ).unify_chunks()
