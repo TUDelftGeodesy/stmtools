@@ -1,5 +1,7 @@
 # STM: Space Time Matrix 
 
+[![DOI](https://zenodo.org/badge/556716843.svg)](https://zenodo.org/badge/latestdoi/556716843)
+
 `STM` is an Xarray extension for Space-Time Matrix data. At this stage, it is implemented for PSI-InSAR processing.
 ## Installation
 
