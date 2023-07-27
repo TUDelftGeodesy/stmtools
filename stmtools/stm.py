@@ -134,8 +134,16 @@ class SpaceTimeMatrix:
                 data_xr_subset = self._obj.sel(points=subset)
             case "polygon":
                 _check_polygon_kwargs(**kwargs)
+                if "xlabel" not in kwargs:
+                    keyx = "lon"
+                else:
+                    keyx = kwargs["xlabel"]
+                if "ylabel" not in kwargs:
+                    keyy = "lat"
+                else:
+                    keyy = kwargs["ylabel"]
                 mask = self._obj.stm._in_polygon(
-                    kwargs["polygon"], xlabel="lon", ylabel="lat"
+                    kwargs["polygon"], xlabel=keyx, ylabel=keyy
                 )
                 idx = self._obj.points.data[mask.data]
                 data_xr_subset = self._obj.sel(points=idx)
