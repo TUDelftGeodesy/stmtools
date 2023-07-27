@@ -80,15 +80,13 @@ class SpaceTimeMatrix:
                     check_mult_relops(
                         str_parts[2]
                     )  # Check to ensure multiple relational operators are not present
-                    data_xr_subset = self._obj.where(
-                        self._obj[kwargs["var"]] < float(str_parts[2]), drop=True
-                    )
+                    idx = (self._obj[kwargs["var"]] < float(str_parts[2])).compute()
+                    data_xr_subset = self._obj.where(idx, drop=True)
                 elif kwargs["threshold"][0] == ">":
                     str_parts = kwargs["threshold"].partition(">")
                     check_mult_relops(str_parts[2])
-                    data_xr_subset = self._obj.where(
-                        self._obj[kwargs["var"]] > float(str_parts[2]), drop=True
-                    )
+                    idx = (self._obj[kwargs["var"]] > float(str_parts[2])).compute()
+                    data_xr_subset = self._obj.where(idx, drop=True)
                 else:
                     raise Exception(
                         "Suitable relational operator not found! Please check input"
