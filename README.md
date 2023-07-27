@@ -1,8 +1,8 @@
-# STM: Space Time Matrix 
+# STMtools: Space Time Matrix Toolbox
 
 [![DOI](https://zenodo.org/badge/556716843.svg)](https://zenodo.org/badge/latestdoi/556716843)
 
-`STM` is an Xarray extension for Space-Time Matrix data. At this stage, it is implemented for PSI-InSAR processing.
+`STMtools` is an Xarray extension for Space-Time Matrix data. At this stage, it is implemented for PSI-InSAR processing.
 ## Installation
 
 First, clone this repository to your local file system:

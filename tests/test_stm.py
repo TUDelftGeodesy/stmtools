@@ -1,7 +1,7 @@
 import xarray as xr
 import dask.array as da
 import numpy as np
-from stm import stm
+from stmtools import stm
 import pytest
 import geopandas as gpd
 from shapely import geometry
