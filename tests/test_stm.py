@@ -29,6 +29,7 @@ def stmat():
         ),
     ).unify_chunks()
 
+
 @pytest.fixture
 def stmat_rd():
     # A STM with rd coordinates
@@ -49,6 +50,21 @@ def stmat_rd():
             rdx=(["points"], da.arange(npoints)),
             rdy=(["points"], da.arange(npoints)),
             time=(["time"], np.arange(ntime)),
+        ),
+    ).unify_chunks()
+
+
+@pytest.fixture
+def stmat_only_point():
+    npoints = 10
+    return xr.Dataset(
+        data_vars=dict(
+            amplitude=(["points"], da.arange(npoints)),
+            phase=(["points"], da.arange(npoints)),
+            pnt_height=(["points"], da.arange(npoints))
+        ),
+        coords=dict(
+            lon=(["points"], da.arange(npoints)), lat=(["points"], da.arange(npoints))
         ),
     ).unify_chunks()
 
@@ -96,6 +112,26 @@ def multi_polygon():
 
     return gpd.GeoDataFrame(data, crs="EPSG:4326")
 
+class TestRegulateDims:
+    def test_time_dim_exists(self, stmat_only_point):
+        stm_reg = stmat_only_point.stm.regulate_dims()
+        assert "time" in stm_reg.dims.keys()
+    
+    def test_time_dim_size_one(self, stmat_only_point):
+        stm_reg = stmat_only_point.stm.regulate_dims()
+        assert stm_reg.dims["time"]==1
+    
+    def test_pnt_time_dim_nonexists(self, stmat_only_point):
+        """
+        For data variable with name pattern "pnt_*", there should be no time dimension. 
+        """
+        stm_reg = stmat_only_point.stm.regulate_dims()
+        assert "time" not in stm_reg['pnt_height'].dims
+
+    def test_subset_works_after_regulate_dims(self, stmat_only_point):
+        stm_reg = stmat_only_point.stm.regulate_dims()
+        stm_reg_subset = stm_reg.stm.subset(method="threshold", var="pnt_height", threshold=">5")
+        assert stm_reg_subset.dims["points"] == 4
 
 class TestSubset:
     def test_method_not_implemented(self, stmat):
@@ -125,50 +161,51 @@ class TestSubset:
         assert stmat_subset.equals(stmat.sel(points=[2]))
 
     def test_subset_with_polygons_rd(self, stmat_rd, polygon):
-        stmat_subset = stmat_rd.stm.subset(method="polygon", polygon=polygon, xlabel="rdx", ylabel="rdy")
+        stmat_subset = stmat_rd.stm.subset(
+            method="polygon", polygon=polygon, xlabel="rdx", ylabel="rdy"
+        )
         assert stmat_subset.equals(stmat_rd.sel(points=[2]))
 
     def test_subset_with_multi_polygons(self, stmat, multi_polygon):
         stmat_subset = stmat.stm.subset(method="polygon", polygon=multi_polygon)
         assert stmat_subset.equals(stmat.sel(points=[2, 6]))
 
-
 class TestEnrichment:
     def test_enrich_one_field_one_polygon(self, stmat, polygon):
         field = polygon.columns[0]
         stmat = stmat.stm.enrich_from_polygon(polygon, field)
         assert field in stmat.data_vars
-        
+
         results = stmat[field].data.compute()
-        results = results[results!=None]
-        assert np.all(results==np.array(polygon[field]))
-    
+        results = results[results != None]
+        assert np.all(results == np.array(polygon[field]))
+
     def test_enrich_multi_fields_one_polygon(self, stmat, polygon):
         # fields = polygon.columns[0:2]
-        fields = ['ID', 'temperature']
+        fields = ["ID", "temperature"]
         stmat = stmat.stm.enrich_from_polygon(polygon, fields)
         for field in fields:
             assert field in stmat.data_vars
-        
+
             results = stmat[field].data.compute()
-            results = results[results!=None]
-            assert np.all(results==np.array(polygon[field]))
+            results = results[results != None]
+            assert np.all(results == np.array(polygon[field]))
 
     def test_enrich_one_field_multi_polygon(self, stmat, multi_polygon):
         field = multi_polygon.columns[0]
         stmat = stmat.stm.enrich_from_polygon(multi_polygon, field)
         assert field in stmat.data_vars
-        
+
         results = stmat[field].data.compute()
-        results = results[results!=None]
-        assert np.all(results==np.array(multi_polygon[field]))
-    
+        results = results[results != None]
+        assert np.all(results == np.array(multi_polygon[field]))
+
     def test_enrich_multi_fields_multi_polygon(self, stmat, multi_polygon):
         fields = multi_polygon.columns[0:2]
         stmat = stmat.stm.enrich_from_polygon(multi_polygon, fields)
         for field in fields:
             assert field in stmat.data_vars
-        
+
             results = stmat[field].data.compute()
-            results = results[results!=None]
-            assert np.all(results==np.array(multi_polygon[field]))
+            results = results[results != None]
+            assert np.all(results == np.array(multi_polygon[field]))
