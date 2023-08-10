@@ -46,6 +46,25 @@ class SpaceTimeMatrix:
         return self._obj
 
     def regulate_dims(self, points_label=None, time_label=None):
+        """
+        Regulate the dimension of a Space-Time Matrix instance. 
+        An STM should have two dimensions: "points" and "time". If the inupt argument `points_label` or `time_label` is specified, and that dimension exists, the function will rename that dimension to "points" or "time".
+        If either `points_label` or `time_label` are None, a "points" or "time" dimension with size 1 will be created.
+        If both `points_label` or `time_label` are None.
+        Data variables will also be regulated. For data variables with a name started with "pnt_", they are regared as point-only attribute and will not be affected by "time" dimension expansion.
+
+        Parameters
+        ----------
+        points_label : str, optional
+            Dimension to be renamed as "points", by default None.
+        time_label : _type_, optional
+            Dimension to be renamed as "time", by default None.
+
+        Returns
+        -------
+        xarray.Dataset
+            Regulated STM.
+        """
 
         if (
             (points_label is None)
