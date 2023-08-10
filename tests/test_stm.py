@@ -29,6 +29,29 @@ def stmat():
         ),
     ).unify_chunks()
 
+@pytest.fixture
+def stmat_rd():
+    # A STM with rd coordinates
+    npoints = 10
+    ntime = 5
+    return xr.Dataset(
+        data_vars=dict(
+            amplitude=(
+                ["points", "time"],
+                da.arange(npoints * ntime).reshape((npoints, ntime)),
+            ),
+            phase=(
+                ["points", "time"],
+                da.arange(npoints * ntime).reshape((npoints, ntime)),
+            ),
+        ),
+        coords=dict(
+            rdx=(["points"], da.arange(npoints)),
+            rdy=(["points"], da.arange(npoints)),
+            time=(["time"], np.arange(ntime)),
+        ),
+    ).unify_chunks()
+
 
 @pytest.fixture
 def polygon():
@@ -100,6 +123,10 @@ class TestSubset:
     def test_subset_with_polygons(self, stmat, polygon):
         stmat_subset = stmat.stm.subset(method="polygon", polygon=polygon)
         assert stmat_subset.equals(stmat.sel(points=[2]))
+
+    def test_subset_with_polygons_rd(self, stmat_rd, polygon):
+        stmat_subset = stmat_rd.stm.subset(method="polygon", polygon=polygon, xlabel="rdx", ylabel="rdy")
+        assert stmat_subset.equals(stmat_rd.sel(points=[2]))
 
     def test_subset_with_multi_polygons(self, stmat, multi_polygon):
         stmat_subset = stmat.stm.subset(method="polygon", polygon=multi_polygon)
