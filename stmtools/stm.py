@@ -46,10 +46,6 @@ class SpaceTimeMatrix:
         return self._obj
 
     def regulate_dims(self, points_label=None, time_label=None):
-        """
-        Regulate the dimension of a Space-Time Matrix instance. 
-        An STM should have two dimensions: "points" and "time".
-        """
 
         if (
             (points_label is None)
@@ -61,21 +57,24 @@ class SpaceTimeMatrix:
             )
 
         # Check time dimension
+        ds_reg = self._obj
         for key, label in zip(["points", "time"], [points_label, time_label]):
             if key not in self._obj.dims.keys():
                 if label is None:
-                    ds_reg = self._obj.expand_dims({key: 1})
+                    ds_reg = ds_reg.expand_dims({key: 1})
                 elif isinstance(label, str):
-                    ds_reg = self._obj.rename_dims({label: key})
+                    ds_reg = ds_reg.rename_dims({label: key})
                 else:
                     raise ValueError(f'"{key}" dimension label should be a string.')
+        
+        # Re-order dimensions
         ds_reg = ds_reg.transpose("points", "time")
 
         # Squeeze the time dimension for all point attibutes, if exists
-        for var in ds_reg.data_vars.keys():
-            if var.startswith("pnt_"):
-                if "time" in ds_reg[var].dims:
-                    ds_reg[var] = ds_reg[var].squeeze(dim="time")
+        pnt_vars = [var for var in ds_reg.data_vars.keys() if var.startswith("pnt_")]
+        for var in pnt_vars:
+            if "time" in ds_reg[var].dims:
+                ds_reg[var] = ds_reg[var].squeeze(dim="time")
 
         return ds_reg
 
