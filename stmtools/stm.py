@@ -122,6 +122,11 @@ class SpaceTimeMatrix:
             A subset of the original STM.
         """
 
+        # Check if both "points" and "time" dimension exists
+        for dim in ["points", "time"]:
+            if dim not in self._obj.dims.keys():
+                raise KeyError(f'Missing dimension: "{dim}". You can use the function ".regulate_dim()" to add it.')
+
         match method:  # Match statements available only from python 3.10 onwards
             case "threshold":
                 _check_threshold_kwargs(

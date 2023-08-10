@@ -134,6 +134,10 @@ class TestRegulateDims:
         assert stm_reg_subset.dims["points"] == 4
 
 class TestSubset:
+    def test_check_missing_dimension(self, stmat_only_point):
+        with pytest.raises(KeyError):
+            stmat_only_point.stm.subset(method="threshold", var="pnt_height", threshold=">5")
+
     def test_method_not_implemented(self, stmat):
         with pytest.raises(NotImplementedError):
             stmat.stm.subset(method="something_else")
