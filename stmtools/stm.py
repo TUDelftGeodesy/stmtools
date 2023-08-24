@@ -1,22 +1,22 @@
-import xarray as xr
-from rasterio import features
+import logging
 import math
-import numpy as np
-import geopandas as gpd
-import affine
 from pathlib import Path
+from collections.abc import Iterable
+from typing import List, Union
+
+import xarray as xr
+import dask.array as da
+import numpy as np
+from rasterio import features
 from shapely.strtree import STRtree
 from shapely.geometry import Point
-from collections.abc import Iterable
-import dask.array as da
+import geopandas as gpd
+import affine
 
-import logging
+from stmtools.metadata import STMMetaData, DataVarTypes
+from stmtools.utils import _has_property
 
 logger = logging.getLogger(__name__)
-
-# Inspiration:
-#   - https://docs.xarray.dev/en/stable/internals/extending-xarray.html
-#   - https://corteva.github.io/rioxarray/html/_modules/rioxarray/raster_dataset.html
 
 
 @xr.register_dataset_accessor("stm")
@@ -282,6 +282,22 @@ class SpaceTimeMatrix:
 
         return mask
 
+    def register_metadata(self, dict_meta: STMMetaData):
+        ds_updated = self._obj.assign_attrs(dict_meta)
+
+        return ds_updated
+
+    def register_datatype(self, keys: Union[str, Iterable], datatype: DataVarTypes):
+        ds_updated = self._obj
+
+        if isinstance(keys, str):
+            keys = [keys]
+        if _has_property(ds_updated, keys):
+            ds_updated = ds_updated.assign_attrs({datatype: keys})
+        else:
+            raise ValueError("Not all given keys are data_vars of the STM.")
+        return ds_updated
+
     @property
     def numPoints(self):
         """
@@ -292,7 +308,7 @@ class SpaceTimeMatrix:
         int
             Number of points.
         """
-        return self._obj.dims['points']
+        return self._obj.dims["points"]
 
     @property
     def numEpochs(self):
@@ -304,7 +320,7 @@ class SpaceTimeMatrix:
         int
             Number of epochs.
         """
-        return self._obj.dims['time']
+        return self._obj.dims["time"]
 
 
 def _in_polygon_block(mask, polygon, xlabel, ylabel, type_polygon):

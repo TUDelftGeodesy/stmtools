@@ -1,4 +1,5 @@
-from typing import Iterable, Union
+from typing import Union
+from collections.abc import Iterable
 
 
 def _has_property(ds, keys: Union[str, Iterable]):
