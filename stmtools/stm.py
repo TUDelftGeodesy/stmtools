@@ -282,6 +282,30 @@ class SpaceTimeMatrix:
 
         return mask
 
+    @property
+    def numPoints(self):
+        """
+        Get number of points of the stm.
+
+        Returns
+        -------
+        int
+            Number of points.
+        """
+        return self._obj.dims['points']
+
+    @property
+    def numEpochs(self):
+        """
+        Get number of epochs of the stm.
+
+        Returns
+        -------
+        int
+            Number of epochs.
+        """
+        return self._obj.dims['time']
+
 
 def _in_polygon_block(mask, polygon, xlabel, ylabel, type_polygon):
     """
