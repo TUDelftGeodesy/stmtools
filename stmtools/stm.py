@@ -2,7 +2,7 @@ import logging
 import math
 from pathlib import Path
 from collections.abc import Iterable
-from typing import List, Union
+from typing import Literal, Union
 
 import xarray as xr
 import dask.array as da
@@ -283,11 +283,40 @@ class SpaceTimeMatrix:
         return mask
 
     def register_metadata(self, dict_meta: STMMetaData):
+        """
+        Register metadata
+
+        Parameters
+        ----------
+        dict_meta : STMMetaData
+            Metatdata dictionaries. The schema is pre-defined as annotation.
+
+        Returns
+        -------
+        xarray.Dataset
+            STM with registered metadata.
+        """
+
         ds_updated = self._obj.assign_attrs(dict_meta)
 
         return ds_updated
 
     def register_datatype(self, keys: Union[str, Iterable], datatype: DataVarTypes):
+        """
+        Register the specified data variables as a 
+
+        Parameters
+        ----------
+        keys : Union[str, Iterable]
+            Keys of the data variables to register
+        datatype : str in DataVarTypes
+            String of the datatype. Choose from ["obsData", "auxData", "pntAttrib", "epochAttrib"].
+
+        Returns
+        -------
+        xarray.Dataset
+            STM with registered metadata.
+        """
         ds_updated = self._obj
 
         if isinstance(keys, str):
