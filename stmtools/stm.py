@@ -45,6 +45,58 @@ class SpaceTimeMatrix:
         self._obj = self._obj.assign_attrs(metadata)
         return self._obj
 
+    def regulate_dims(self, points_label=None, time_label=None):
+        """
+        Regulate the dimension of a Space-Time Matrix instance. 
+        An STM should have two dimensions: "points" and "time". If the inupt argument `points_label` or `time_label` is specified, and that dimension exists, the function will rename that dimension to "points" or "time".
+        If either `points_label` or `time_label` are None, a "points" or "time" dimension with size 1 will be created.
+        If both `points_label` or `time_label` are None.
+        Data variables will also be regulated. For data variables with a name started with "pnt_", they are regared as point-only attribute and will not be affected by "time" dimension expansion.
+
+        Parameters
+        ----------
+        points_label : str, optional
+            Dimension to be renamed as "points", by default None.
+        time_label : _type_, optional
+            Dimension to be renamed as "time", by default None.
+
+        Returns
+        -------
+        xarray.Dataset
+            Regulated STM.
+        """
+
+        if (
+            (points_label is None)
+            and (time_label is None)
+            and all([k not in self._obj.dims.keys() for k in ["points", "time"]])
+        ):
+            raise ValueError(
+                'No "points" nor "time" dimension found. You should specify either "points_label" or ""time_label'
+            )
+
+        # Check time dimension
+        ds_reg = self._obj
+        for key, label in zip(["points", "time"], [points_label, time_label]):
+            if key not in self._obj.dims.keys():
+                if label is None:
+                    ds_reg = ds_reg.expand_dims({key: 1})
+                elif isinstance(label, str):
+                    ds_reg = ds_reg.rename_dims({label: key})
+                else:
+                    raise ValueError(f'"{key}" dimension label should be a string.')
+        
+        # Re-order dimensions
+        ds_reg = ds_reg.transpose("points", "time")
+
+        # Squeeze the time dimension for all point attibutes, if exists
+        pnt_vars = [var for var in ds_reg.data_vars.keys() if var.startswith("pnt_")]
+        for var in pnt_vars:
+            if "time" in ds_reg[var].dims:
+                ds_reg[var] = ds_reg[var].squeeze(dim="time")
+
+        return ds_reg
+
     def subset(self, method: str, **kwargs):
         """
         Select a subset of the STM
@@ -69,6 +121,11 @@ class SpaceTimeMatrix:
         xarray.Dataset
             A subset of the original STM.
         """
+
+        # Check if both "points" and "time" dimension exists
+        for dim in ["points", "time"]:
+            if dim not in self._obj.dims.keys():
+                raise KeyError(f'Missing dimension: "{dim}". You can use the function ".regulate_dim()" to add it.')
 
         match method:  # Match statements available only from python 3.10 onwards
             case "threshold":

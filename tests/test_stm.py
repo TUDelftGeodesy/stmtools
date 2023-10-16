@@ -55,6 +55,21 @@ def stmat_rd():
 
 
 @pytest.fixture
+def stmat_only_point():
+    npoints = 10
+    return xr.Dataset(
+        data_vars=dict(
+            amplitude=(["points"], da.arange(npoints)),
+            phase=(["points"], da.arange(npoints)),
+            pnt_height=(["points"], da.arange(npoints))
+        ),
+        coords=dict(
+            lon=(["points"], da.arange(npoints)), lat=(["points"], da.arange(npoints))
+        ),
+    ).unify_chunks()
+
+
+@pytest.fixture
 def polygon():
     p1 = geometry.Point(1, 1)
     p2 = geometry.Point(1, 2)
@@ -97,6 +112,26 @@ def multi_polygon():
 
     return gpd.GeoDataFrame(data, crs="EPSG:4326")
 
+class TestRegulateDims:
+    def test_time_dim_exists(self, stmat_only_point):
+        stm_reg = stmat_only_point.stm.regulate_dims()
+        assert "time" in stm_reg.dims.keys()
+    
+    def test_time_dim_size_one(self, stmat_only_point):
+        stm_reg = stmat_only_point.stm.regulate_dims()
+        assert stm_reg.dims["time"]==1
+    
+    def test_pnt_time_dim_nonexists(self, stmat_only_point):
+        """
+        For data variable with name pattern "pnt_*", there should be no time dimension. 
+        """
+        stm_reg = stmat_only_point.stm.regulate_dims()
+        assert "time" not in stm_reg['pnt_height'].dims
+
+    def test_subset_works_after_regulate_dims(self, stmat_only_point):
+        stm_reg = stmat_only_point.stm.regulate_dims()
+        stm_reg_subset = stm_reg.stm.subset(method="threshold", var="pnt_height", threshold=">5")
+        assert stm_reg_subset.dims["points"] == 4
 
 class TestAttributes:
     def test_numpoints(self, stmat):
@@ -107,6 +142,10 @@ class TestAttributes:
 
 
 class TestSubset:
+    def test_check_missing_dimension(self, stmat_only_point):
+        with pytest.raises(KeyError):
+            stmat_only_point.stm.subset(method="threshold", var="pnt_height", threshold=">5")
+
     def test_method_not_implemented(self, stmat):
         with pytest.raises(NotImplementedError):
             stmat.stm.subset(method="something_else")
@@ -142,7 +181,6 @@ class TestSubset:
     def test_subset_with_multi_polygons(self, stmat, multi_polygon):
         stmat_subset = stmat.stm.subset(method="polygon", polygon=multi_polygon)
         assert stmat_subset.equals(stmat.sel(points=[2, 6]))
-
 
 class TestEnrichment:
     def test_enrich_one_field_one_polygon(self, stmat, polygon):
