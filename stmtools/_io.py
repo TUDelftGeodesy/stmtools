@@ -71,7 +71,7 @@ def from_csv(
     # Uniform chunking
     if output_chunksize is None:
         output_chunksize = chunks[0][0]
-        if len(chunks[0])>1:
+        if len(chunks[0]) > 1:
             # If more than one chunk, use the first chunk size, round to next 5000
             output_chunksize = _round_chunksize(output_chunksize)
     stmat = stmat.chunk(output_chunksize)
@@ -85,12 +85,12 @@ def from_csv(
 
     return stmat
 
+
 def _is_space(space_pattern: str, column):
     """Check if column is a space attribute"""
     return re.match(re.compile(space_pattern), column)
 
-def _round_chunksize(size):
-    """round size to next 5000
-    """
-    return math.ceil(size/5000)*5000
 
+def _round_chunksize(size):
+    """round size to next 5000"""
+    return math.ceil(size / 5000) * 5000
