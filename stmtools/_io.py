@@ -67,8 +67,8 @@ def from_csv(
     # Then convert ddf to dask array
     da_col0 = ddf[ddf.columns[0]].to_dask_array()
     da_col0.compute_chunk_sizes()
-    chunks = da_col0.chunks
-    da_all_cols = ddf.to_dask_array(lengths=chunks[0])
+    chunks = da_col0.chunks[0]  # take the first dim, which is space (row direction)
+    da_all_cols = ddf.to_dask_array(lengths=chunks)
 
     # Count time dimension by one spacetime column
     if spacetime_pattern is None:
@@ -94,7 +94,9 @@ def from_csv(
 
     # Temporaly save time-series columns to lists in dict_temp_da
     for column in ddf.columns:
-        idx_col = ddf.columns.get_loc(column) # column index for indexing in coverted da
+        idx_col = ddf.columns.get_loc(
+            column
+        )  # column index for indexing in coverted da
         if _is_space(space_pattern, column):
             da_pnt = da_all_cols[:, idx_col]
             stmat = stmat.assign({column: (("space"), da_pnt)})
@@ -115,10 +117,11 @@ def from_csv(
 
     # Uniform chunking
     if output_chunksize is None:
-        output_chunksize = chunks[0][0]
-        if len(chunks[0]) > 1:
+        space_chunksize = chunks[0]  # take the size of the first ddf chunk
+        if len(chunks) > 1:
             # If more than one chunk, use the first chunk size, round to next 5000
-            output_chunksize = _round_chunksize(output_chunksize)
+            space_chunksize = _round_chunksize(space_chunksize)
+        output_chunksize = {"space": space_chunksize, "time": -1}
     stmat = stmat.chunk(output_chunksize)
 
     # Set coordinates
