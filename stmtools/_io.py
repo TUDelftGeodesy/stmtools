@@ -15,7 +15,7 @@ def from_csv(
     blocksize: int | str | None = 200e6,
 ):
     """Initiate an STM instance from a csv file.
-    The specified csv file will be loaded as a `dask.dataframe` instance with a fixed blocksize.
+    The specified csv file will be loaded using `dask.dataframe.read_csv` with a fixed blocksize.
 
     The columns of the csv file will be classified into coordinates, and data variables.
     
@@ -24,12 +24,12 @@ def from_csv(
 
     The following assumptions are made to the column names of the csv file:
         1. All columns with space-only attributes share the same RE pattern in the column names.
-          E.g. Lattitude, Longitude and height columns are named as "pnt_lat", "pnt_lon" and 
+          E.g. Latitude, Longitude and height columns are named as "pnt_lat", "pnt_lon" and 
           "pnt_height", sharing the same RE pattern "^pnt_";
         2. Per space-time attribute, a common RE pattern is shared by all columns. E.g. for the 
-          time-sries of amplitude data, the column names are "amp_20100101", "amp_20100110", 
+          time-series of amplitude data, the column names are "amp_20100101", "amp_20100110", 
           "amp_20100119" ..., where "^amp_" is the common RE pattern;
-        3. There is no temporal-only (i.e. 1-row attribute) attribute presented the csv file.
+        3. There is no temporal-only (i.e. 1-row attribute) attribute present in the csv file.
 
     `from_csv` does not retrieve time stamps based on column names. The `time` coordinate of 
       the output STM will be a monotonic integer series starting from 0.
