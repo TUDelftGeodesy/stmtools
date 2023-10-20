@@ -66,6 +66,21 @@ def from_csv(
     # Load csv as Dask DataFrame
     ddf = dd.read_csv(file, blocksize=blocksize)
 
+    # Assign default space-time pattern
+    if spacetime_pattern is None:
+        spacetime_pattern = {"^d_": "deformation", "^a_": "amplitude", "^h2ph_": "h2ph"}
+
+    # Check all patterns have at least one match
+    flag_s_match = _any_match(space_pattern, ddf.columns)  # Any space patter match
+    if not flag_s_match:
+        raise ValueError(f'Space pattern "{space_pattern}" does not match any column')
+    for k in spacetime_pattern.keys():
+        flag_st_match = _any_match(k, ddf.columns)  # Any space-time patter match
+        if not flag_st_match:
+            raise ValueError(
+                f'Pattern "{k}" in spacetime_pattern does not match any column'
+            )
+
     # Take the first column and compute the chunk sizes
     # Then convert ddf to dask array
     da_col0 = ddf[ddf.columns[0]].to_dask_array()
@@ -74,8 +89,6 @@ def from_csv(
     da_all_cols = ddf.to_dask_array(lengths=chunks)
 
     # Estimate time dimension size by one spacetime column
-    if spacetime_pattern is None:
-        spacetime_pattern = {"^d_": "deformation", "^a_": "amplitude", "^h2ph_": "h2ph"}
     time_shape = 0
     if spacetime_pattern is not None:
         key = list(spacetime_pattern.keys())[0]
@@ -150,3 +163,14 @@ def from_csv(
 def _round_chunksize(size):
     """round size to next 5000"""
     return math.ceil(size / 5000) * 5000
+
+
+def _any_match(pattern, columns):
+    """If a pattern match any columns"""
+    flag_match = False  # Any space-time patter match
+    for column in columns:
+        if re.match(re.compile(pattern), column):
+            flag_match = True
+            break
+
+    return flag_match

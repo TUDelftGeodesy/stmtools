@@ -66,3 +66,9 @@ class TestFromCSV:
             set(["pnt_lat", "pnt_lat"]).issubset([k for k in data.coords.keys()])
         )
         assert not (set(["lat", "lon"]).issubset([k for k in data.coords.keys()]))
+
+    def test_readcsv_wrong_pattern(self):
+        with pytest.raises(ValueError):
+            data = stmtools.from_csv(
+                path_example_csv, spacetime_pattern={"nonexist": "nonexist_data"}
+            )
