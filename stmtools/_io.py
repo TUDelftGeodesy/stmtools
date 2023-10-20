@@ -4,9 +4,12 @@ import re
 import math
 from pathlib import Path
 from typing import List, Dict
+import logging
 import xarray as xr
 import dask.dataframe as dd
 import dask.array as da
+
+logger = logging.getLogger(__name__)
 
 
 def from_csv(
@@ -70,7 +73,7 @@ def from_csv(
     chunks = da_col0.chunks[0]  # take the first dim, which is space (row direction)
     da_all_cols = ddf.to_dask_array(lengths=chunks)
 
-    # Count time dimension by one spacetime column
+    # Estimate time dimension size by one spacetime column
     if spacetime_pattern is None:
         spacetime_pattern = {"^d_": "deformation", "^a_": "amplitude", "^h2ph_": "h2ph"}
     time_shape = 0
@@ -97,15 +100,23 @@ def from_csv(
         idx_col = ddf.columns.get_loc(
             column
         )  # column index for indexing in coverted da
-        if _is_space(space_pattern, column):
+        if re.match(re.compile(space_pattern), column):
             da_pnt = da_all_cols[:, idx_col]
             stmat = stmat.assign({column: (("space"), da_pnt)})
         else:
+            flag_column_match = False
             for k in spacetime_pattern.keys():
-                if re.match(re.compile(f"{k}"), column):
+                if re.match(re.compile(k), column):
                     da_list = dict_temp_da[k]
                     da_list.append(da_all_cols[:, idx_col])
                     dict_temp_da[k] = da_list
+                    flag_column_match = True
+            if not flag_column_match:  # warning of unmatched columns
+                # ignore if the first column, which is the index
+                if column != ddf.columns[0]:
+                    logger.warning(
+                        f'Column "{column}" in the csv file does not match any specified pattern.'
+                    )
 
     # Stack dask arrays in dict_temp_da, assign to STM
     for k, da_list in dict_temp_da.items():
@@ -134,11 +145,6 @@ def from_csv(
         stmat = stmat.set_coords(coords_cols)
 
     return stmat
-
-
-def _is_space(space_pattern: str, column):
-    """Check if column is a space attribute"""
-    return re.match(re.compile(space_pattern), column)
 
 
 def _round_chunksize(size):
