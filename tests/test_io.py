@@ -5,6 +5,7 @@ from pathlib import Path
 
 path_example_csv = Path(__file__).parent / "../examples/data/example.csv"
 
+
 class TestFromCSV:
     @pytest.fixture
     def example_data(self):
