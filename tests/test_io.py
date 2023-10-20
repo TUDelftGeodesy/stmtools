@@ -1,9 +1,9 @@
 import stmtools
 import pandas as pd
 import pytest
+from pathlib import Path
 
-path_example_csv = "../examples/data/example.csv"
-
+path_example_csv = Path(__file__).parent / "../examples/data/example.csv"
 
 class TestFromCSV:
     @pytest.fixture
