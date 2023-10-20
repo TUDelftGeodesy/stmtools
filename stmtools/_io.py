@@ -64,9 +64,11 @@ def from_csv(
     ddf = dd.read_csv(file, blocksize=blocksize)
 
     # Take the first column and compute the chunk sizes
+    # Then convert ddf to dask array
     da_col0 = ddf[ddf.columns[0]].to_dask_array()
     da_col0.compute_chunk_sizes()
     chunks = da_col0.chunks
+    da_all_cols = ddf.to_dask_array(lengths=chunks[0])
 
     # Count time dimension by one spacetime column
     if spacetime_pattern is None:
@@ -92,14 +94,15 @@ def from_csv(
 
     # Temporaly save time-series columns to lists in dict_temp_da
     for column in ddf.columns:
+        idx_col = ddf.columns.get_loc(column) # column index for indexing in coverted da
         if _is_space(space_pattern, column):
-            da_pnt = ddf[column].to_dask_array(lengths=chunks[0])
+            da_pnt = da_all_cols[:, idx_col]
             stmat = stmat.assign({column: (("space"), da_pnt)})
         else:
             for k in spacetime_pattern.keys():
                 if re.match(re.compile(f"{k}"), column):
                     da_list = dict_temp_da[k]
-                    da_list.append(ddf[column].to_dask_array(lengths=chunks[0]))
+                    da_list.append(da_all_cols[:, idx_col])
                     dict_temp_da[k] = da_list
 
     # Stack dask arrays in dict_temp_da, assign to STM
