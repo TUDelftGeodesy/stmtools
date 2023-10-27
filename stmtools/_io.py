@@ -1,11 +1,13 @@
 """_io.py
 """
+from datetime import datetime
 import re
 import math
 from pathlib import Path
 from typing import List, Dict
 import logging
 import xarray as xr
+import numpy as np
 import dask.dataframe as dd
 import dask.array as da
 
@@ -88,18 +90,13 @@ def from_csv(
     chunks = da_col0.chunks[0]  # take the first dim, which is space (row direction)
     da_all_cols = ddf.to_dask_array(lengths=chunks)
 
-    # Estimate time dimension size by one spacetime column
-    time_shape = 0
-    if spacetime_pattern is not None:
-        key = list(spacetime_pattern.keys())[0]
-        for column in ddf.columns:
-            if re.match(re.compile(key), column):
-                time_shape += 1
+    # Extract time values
+    time_values = _convert_times(spacetime_pattern, ddf.columns)
 
     # Initiate a template STM
     coords = {
         "space": range(da_col0.shape[0]),
-        "time": range(time_shape),
+        "time": time_values,
     }
     stmat = xr.Dataset(coords=coords)
 
@@ -174,3 +171,53 @@ def _any_match(pattern, columns):
             break
 
     return flag_match
+
+
+def _extract_times(pattern, columns):
+    """Extract times from column names for each variable in spacetime_pattern"""
+    times = []
+    for column in columns:
+        if re.match(re.compile(pattern), column):
+            times.append(column.split("_")[-1])
+    return times
+
+
+def _convert_times(spacetime_pattern, columns_names):
+    """Convert time series to datetime objects np.datetime64"""
+
+    # Extract times from column names for each variable in spacetime_pattern
+    dict_times = {}
+    for k in spacetime_pattern.keys():
+        dict_times[k] = _extract_times(k, columns_names)
+
+    # Check if all time series have the same length
+    len_times = [len(v[0]) for v in dict_times.values()]
+    if any(v != len_times[0] for v in len_times):
+        raise ValueError("Time series have different lengths")
+
+    # check if all time values in dict_times are same among keys
+    if any(v != dict_times[list(dict_times.keys())[0]] for v in dict_times.values()):
+        raise ValueError("Time values are different among variables")
+
+    # Check if time format is in the form of YYYYMMDD
+    is_format_valid = True
+    for t in dict_times.values():
+        for tt in t:
+            if not re.match(r"\d{8}", tt):
+                is_format_valid = False
+                logger.warning(
+                    f'Time format "{tt}" is not in the form of YYYYMMDD. '
+                    "Time values are converted to integers."
+                )
+                break
+
+    times = list(dict_times.values())[0]
+    if is_format_valid:
+        times = [datetime.strptime(t, "%Y%m%d") for t in times]
+        times = np.array(times)
+        # Convert the values to nanosecond precision
+        times = times.astype("datetime64[ns]")
+    else:
+        times = range(len(times))
+
+    return times
