@@ -3,7 +3,7 @@ import dask.array as da
 import numpy as np
 import pytest
 from stmtools import utils
-from .test_stm import stmat
+from tests.test_stm import stmat
 
 class TestHasProperty():
     def test_has_property_str(self, stmat):
