@@ -92,7 +92,6 @@ def from_csv(
     da_col0 = ddf[ddf.columns[0]].to_dask_array()
     da_col0.compute_chunk_sizes()
     chunks = da_col0.chunks[0]  # take the first dim, which is space (row direction)
-    da_all_cols = ddf.to_dask_array(lengths=chunks)
 
     # Extract time values
     time_values = _convert_times(spacetime_pattern, ddf.columns)
@@ -111,18 +110,22 @@ def from_csv(
 
     # Temporaly save time-series columns to lists in dict_temp_da
     for column in ddf.columns:
-        idx_col = ddf.columns.get_loc(
-            column
-        )  # column index for indexing in coverted da
         if re.match(re.compile(space_pattern), column):
-            da_pnt = da_all_cols[:, idx_col]
+            if column == 'pnt_id':
+                # specify str type for point id
+                # otherwise it will be loaded as objest type
+                # then when saving to zarr, a redundant loading is needed to determine type
+                da_pnt = ddf[column].to_dask_array(lengths=chunks).astype(str)
+            else:
+                da_pnt = ddf[column].to_dask_array(lengths=chunks)
             stmat = stmat.assign({column: (("space"), da_pnt)})
         else:
             flag_column_match = False
             for k in spacetime_pattern.keys():
                 if re.match(re.compile(k), column):
                     da_list = dict_temp_da[k]
-                    da_list.append(da_all_cols[:, idx_col])
+                    # da_list.append(da_all_cols[:, idx_col])
+                    da_list.append(ddf[column].to_dask_array(lengths=chunks))
                     dict_temp_da[k] = da_list
                     flag_column_match = True
             if not flag_column_match:  # warning of unmatched columns
