@@ -75,12 +75,12 @@ def polygon():
     p2 = geometry.Point(1, 2)
     p3 = geometry.Point(3, 3)
     p4 = geometry.Point(2, 1)
-    pointList = [p1, p2, p3, p4, p1]
+    point_list = [p1, p2, p3, p4, p1]
 
     data = {
         "ID": ["001"],
         "temperature": [15.24],
-        "geometry": [geometry.Polygon(pointList)],
+        "geometry": [geometry.Polygon(point_list)],
     }
 
     return gpd.GeoDataFrame(data, crs="EPSG:4326")
@@ -95,19 +95,19 @@ def multi_polygon():
     p2 = geometry.Point(1, 2)
     p3 = geometry.Point(3, 3)
     p4 = geometry.Point(2, 1)
-    pointList1 = [p1, p2, p3, p4, p1]
+    point_list1 = [p1, p2, p3, p4, p1]
 
     # Polygon 2
     p1 = geometry.Point(5, 5)
     p2 = geometry.Point(5, 6)
     p3 = geometry.Point(7, 7)
     p4 = geometry.Point(6, 5)
-    pointList2 = [p1, p2, p3, p4, p1]
+    point_list2 = [p1, p2, p3, p4, p1]
 
     data = {
         "ID": ["001", "002"],
         "temperature": [15.24, 14.12],
-        "geometry": [geometry.Polygon(pointList1), geometry.Polygon(pointList2)],
+        "geometry": [geometry.Polygon(point_list1), geometry.Polygon(point_list2)],
     }
 
     return gpd.GeoDataFrame(data, crs="EPSG:4326")
@@ -193,7 +193,6 @@ class TestEnrichment:
         assert np.all(results == np.array(polygon[field]))
 
     def test_enrich_multi_fields_one_polygon(self, stmat, polygon):
-        # fields = polygon.columns[0:2]
         fields = ["ID", "temperature"]
         stmat = stmat.stm.enrich_from_polygon(polygon, fields)
         for field in fields:
