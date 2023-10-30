@@ -20,7 +20,7 @@ def from_csv(
     space_pattern: str = "^pnt_",
     spacetime_pattern: Dict[str, str] = None,
     coords_cols: List[str] | Dict[str, str] = None,
-    output_chunksize: Dict[str, str] = None,
+    output_chunksize: Dict[str, int] = None,
     blocksize: int | str = 200e6,
 ) -> xr.Dataset:
     """Initiate an STM instance from a csv file.
@@ -111,7 +111,7 @@ def from_csv(
     # Temporaly save time-series columns to lists in dict_temp_da
     for column in ddf.columns:
         if re.match(re.compile(space_pattern), column):
-            if column == 'pnt_id':
+            if column == "pnt_id":
                 # specify str type for point id
                 # otherwise it will be loaded as objest type
                 # then when saving to zarr, a redundant loading is needed to determine type
@@ -162,10 +162,6 @@ def from_csv(
         stmat = stmat.set_coords(coords_cols)
 
     return stmat
-
-
-def _get_col_dtypes():
-    pass
 
 
 def _round_chunksize(size):
