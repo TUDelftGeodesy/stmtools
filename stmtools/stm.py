@@ -48,15 +48,15 @@ class SpaceTimeMatrix:
     def regulate_dims(self, points_label=None, time_label=None):
         """
         Regulate the dimension of a Space-Time Matrix instance. 
-        An STM should have two dimensions: "points" and "time". If the inupt argument `points_label` or `time_label` is specified, and that dimension exists, the function will rename that dimension to "points" or "time".
-        If either `points_label` or `time_label` are None, a "points" or "time" dimension with size 1 will be created.
+        An STM should have two dimensions: "space" and "time". If the inupt argument `points_label` or `time_label` is specified, and that dimension exists, the function will rename that dimension to "space" or "time".
+        If either `points_label` or `time_label` are None, a "space" or "time" dimension with size 1 will be created.
         If both `points_label` or `time_label` are None.
         Data variables will also be regulated. For data variables with a name started with "pnt_", they are regared as point-only attribute and will not be affected by "time" dimension expansion.
 
         Parameters
         ----------
         points_label : str, optional
-            Dimension to be renamed as "points", by default None.
+            Dimension to be renamed as "space", by default None.
         time_label : _type_, optional
             Dimension to be renamed as "time", by default None.
 
@@ -69,15 +69,15 @@ class SpaceTimeMatrix:
         if (
             (points_label is None)
             and (time_label is None)
-            and all([k not in self._obj.dims.keys() for k in ["points", "time"]])
+            and all([k not in self._obj.dims.keys() for k in ["space", "time"]])
         ):
             raise ValueError(
-                'No "points" nor "time" dimension found. You should specify either "points_label" or ""time_label'
+                'No "space" nor "time" dimension found. You should specify either "points_label" or ""time_label'
             )
 
         # Check time dimension
         ds_reg = self._obj
-        for key, label in zip(["points", "time"], [points_label, time_label]):
+        for key, label in zip(["space", "time"], [points_label, time_label]):
             if key not in self._obj.dims.keys():
                 if label is None:
                     ds_reg = ds_reg.expand_dims({key: 1})
@@ -87,7 +87,7 @@ class SpaceTimeMatrix:
                     raise ValueError(f'"{key}" dimension label should be a string.')
         
         # Re-order dimensions
-        ds_reg = ds_reg.transpose("points", "time")
+        ds_reg = ds_reg.transpose("space", "time")
 
         # Squeeze the time dimension for all point attibutes, if exists
         pnt_vars = [var for var in ds_reg.data_vars.keys() if var.startswith("pnt_")]
@@ -105,11 +105,11 @@ class SpaceTimeMatrix:
         ----------
         method : str
             Method of subsetting. Choose from "threshold", "density" and "polygon".
-            - threshold: select all points with a threshold criterion, e.g.
+            - threshold: select all space entries with a threshold criterion, e.g.
                 data_xr.stm.subset(method="threshold", var="thres", threshold='>1')
             - density: select one point in every [dx, dy] cell, e.g.
                 data_xr.stm.subset(method='density', dx=0.1, dy=0.1)
-            - polygon: select all points inside a given polygon, e.g.
+            - polygon: select all space entries inside a given polygon, e.g.
                 data_xr.stm.subset(method='polygon', polygon=path_polygon_file)
                 or
                 import geopandas as gpd
@@ -122,8 +122,8 @@ class SpaceTimeMatrix:
             A subset of the original STM.
         """
 
-        # Check if both "points" and "time" dimension exists
-        for dim in ["points", "time"]:
+        # Check if both "space" and "time" dimension exists
+        for dim in ["space", "time"]:
             if dim not in self._obj.dims.keys():
                 raise KeyError(f'Missing dimension: "{dim}". You can use the function ".regulate_dim()" to add it.')
 
@@ -151,12 +151,12 @@ class SpaceTimeMatrix:
             case "density":
                 check_density_kwargs(**kwargs)  # Check for all require kwargs
                 gdf = gpd.GeoDataFrame(
-                    self._obj["points"],
+                    self._obj["space"],
                     geometry=gpd.points_from_xy(
                         self._obj[kwargs["x"]], self._obj[kwargs["y"]]
                     ),
                 )
-                # Make a 2D grid based on the points coverage and input density threshold
+                # Make a 2D grid based on the space coverage and input density threshold
                 grid_cell = ((shapes) for shapes in zip(gdf.geometry, gdf.index))
                 out_x = math.ceil(
                     (max(self._obj[kwargs["x"]]) - min(self._obj[kwargs["x"]]))
@@ -166,8 +166,8 @@ class SpaceTimeMatrix:
                     (max(self._obj[kwargs["y"]]) - min(self._obj[kwargs["y"]]))
                     / kwargs["dy"]
                 )
-                # Rasterize the points
-                # If multiple points in one gridcell, only the first point will be recorded
+                # Rasterize the space entries
+                # If multiple space entries in one gridcell, only the first point will be recorded
                 # In this way one point is selected per gridcell
                 raster = features.rasterize(
                     shapes=grid_cell,
@@ -188,7 +188,7 @@ class SpaceTimeMatrix:
                 subset = [
                     item for item in np.unique(raster) if not (math.isnan(item)) == True
                 ]
-                data_xr_subset = self._obj.sel(points=subset)
+                data_xr_subset = self._obj.sel(space=subset)
             case "polygon":
                 _check_polygon_kwargs(**kwargs)
                 if "xlabel" not in kwargs:
@@ -202,15 +202,15 @@ class SpaceTimeMatrix:
                 mask = self._obj.stm._in_polygon(
                     kwargs["polygon"], xlabel=keyx, ylabel=keyy
                 )
-                idx = self._obj.points.data[mask.data]
-                data_xr_subset = self._obj.sel(points=idx)
+                idx = self._obj.space.data[mask.data]
+                data_xr_subset = self._obj.sel(space=idx)
             case other:
                 raise NotImplementedError(
                     "Method: {} is not implemented.".format(method)
                 )
         chunks = {
-            "points": min(
-                self._obj.chunksizes["points"][0], data_xr_subset.points.shape[0]
+            "space": min(
+                self._obj.chunksizes["space"][0], data_xr_subset.space.shape[0]
             ),
             "time": min(self._obj.chunksizes["time"][0], data_xr_subset.time.shape[0]),
         }
@@ -224,7 +224,7 @@ class SpaceTimeMatrix:
         Enrich the SpaceTimeMatrix from one or more attribute fields of a (multi-)polygon.
 
         Each attribute in fields will be assigned as a data variable to the STM.
-        If a point of the STM falls into the given polygon, the value of the specified field will be added. For points outside the (multi-)polygon, the value will be None.
+        If a point of the STM falls into the given polygon, the value of the specified field will be added. For space entries outside the (multi-)polygon, the value will be None.
 
         Parameters
         ----------
@@ -269,13 +269,13 @@ class SpaceTimeMatrix:
 
         # Enrich all fields
         ds = self._obj
-        chunks = (ds.chunksizes["points"][0],)  # Assign an empty fields to ds
+        chunks = (ds.chunksizes["space"][0],)  # Assign an empty fields to ds
         for field in fields:
             ds = ds.assign(
                 {
                     field: (
-                        ["points"],
-                        da.from_array(np.full(ds.points.shape, None), chunks=chunks),
+                        ["space"],
+                        da.from_array(np.full(ds.space.shape, None), chunks=chunks),
                     )
                 }
             )
@@ -290,7 +290,7 @@ class SpaceTimeMatrix:
 
     def _in_polygon(self, polygon, xlabel="lon", ylabel="lat"):
         """
-        Test if points of a STM is inside a given (multi-polygon) and return result as a boolean Dask array.
+        Test if a space entry of a STM is inside a given (multi-polygon) and return result as a boolean Dask array.
 
         Parameters
         ----------
@@ -304,7 +304,7 @@ class SpaceTimeMatrix:
         Returns
         -------
         Dask.array
-            A boolean Dask array. True where points are inside the (multi-)polygon.
+            A boolean Dask array. True where a space entry is inside the (multi-)polygon.
         """
 
         # Check if coords exists
@@ -320,12 +320,12 @@ class SpaceTimeMatrix:
 
         # Enrich all fields
         ds = self._obj
-        chunks = (ds.chunksizes["points"][0],)  # Assign an empty fields to ds
+        chunks = (ds.chunksizes["space"][0],)  # Assign an empty fields to ds
         ds = ds.assign(
             {
                 "mask": (
-                    ["points"],
-                    da.from_array(np.full(ds.points.shape, False), chunks=chunks),
+                    ["space"],
+                    da.from_array(np.full(ds.space.shape, False), chunks=chunks),
                 )
             }
         )
@@ -387,14 +387,14 @@ class SpaceTimeMatrix:
     @property
     def numPoints(self):
         """
-        Get number of points of the stm.
+        Get number of space entry of the stm.
 
         Returns
         -------
         int
-            Number of points.
+            Number of space entry.
         """
-        return self._obj.dims["points"]
+        return self._obj.dims["space"]
 
     @property
     def numEpochs(self):
@@ -443,14 +443,14 @@ def _enrich_from_polygon_block(ds, polygon, fields, xlabel, ylabel, type_polygon
 
 def _ml_str_query(xx, yy, polygon, type_polygon):
     """
-    Test if a set of points is inside a (multi-)polygon using Sort-Tile-Recursive (STR) query, Get the match list.
+    Test if a set of space entries is inside a (multi-)polygon using Sort-Tile-Recursive (STR) query, Get the match list.
 
     Parameters
     ----------
     xx : array_like
-        Vector array of the x coordinates of the points
+        Vector array of the x coordinates
     yy : array_like
-        Vector array of the y coordinates of the points
+        Vector array of the y coordinates
     polygon : geopandas.GeoDataFrame, str, or pathlib.Path
         Polygon or multi-polygon for query
     type_polygon : str
@@ -459,7 +459,7 @@ def _ml_str_query(xx, yy, polygon, type_polygon):
     Returns
     -------
     array_like
-        An array with two columns. The first column is the positional index into the list of polygons being used to query the tree. The second column is the positional index into the list of points for which the tree was constructed.
+        An array with two columns. The first column is the positional index into the list of polygons being used to query the tree. The second column is the positional index into the list of space entries for which the tree was constructed.
     """
 
     # Crop the polygon to the bounding box of the block
@@ -475,7 +475,7 @@ def _ml_str_query(xx, yy, polygon, type_polygon):
         case "File":
             polygon = gpd.read_file(polygon, bbox=(xmin, ymin, xmax, ymax))
 
-    # Build STR tree for points
+    # Build STR tree
     pnttree = STRtree(gpd.GeoSeries(map(Point, zip(xx.data, yy.data))))
 
     match_list = pnttree.query(polygon.geometry, predicate="contains").T

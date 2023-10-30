@@ -11,17 +11,17 @@ def stmat():
     return xr.Dataset(
         data_vars=dict(
             amplitude=(
-                ["points", "time"],
+                ["space", "time"],
                 da.arange(npoints * ntime).reshape((npoints, ntime)),
             ),
             phase=(
-                ["points", "time"],
+                ["space", "time"],
                 da.arange(npoints * ntime).reshape((npoints, ntime)),
             ),
         ),
         coords=dict(
-            lon=(["points"], da.arange(npoints)),
-            lat=(["points"], da.arange(npoints)),
+            lon=(["space"], da.arange(npoints)),
+            lat=(["space"], da.arange(npoints)),
             time=(["time"], np.arange(ntime)),
         ),
     ).unify_chunks()
