@@ -69,7 +69,7 @@ class TestFromCSV:
 
     def test_readcsv_wrong_pattern(self):
         with pytest.raises(ValueError):
-            data = stmtools.from_csv(
+            _ = stmtools.from_csv(
                 path_example_csv, spacetime_pattern={"nonexist": "nonexist_data"}
             )
 

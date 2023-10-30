@@ -3,28 +3,7 @@ import dask.array as da
 import numpy as np
 import pytest
 from stmtools import utils
-
-@pytest.fixture
-def stmat():
-    npoints = 10
-    ntime = 5
-    return xr.Dataset(
-        data_vars=dict(
-            amplitude=(
-                ["points", "time"],
-                da.arange(npoints * ntime).reshape((npoints, ntime)),
-            ),
-            phase=(
-                ["points", "time"],
-                da.arange(npoints * ntime).reshape((npoints, ntime)),
-            ),
-        ),
-        coords=dict(
-            lon=(["points"], da.arange(npoints)),
-            lat=(["points"], da.arange(npoints)),
-            time=(["time"], np.arange(ntime)),
-        ),
-    ).unify_chunks()
+from tests.test_stm import stmat
 
 class TestHasProperty():
     def test_has_property_str(self, stmat):
