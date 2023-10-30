@@ -8,6 +8,7 @@ from typing import List, Dict
 import logging
 import xarray as xr
 import numpy as np
+import pandas as pd
 import dask.dataframe as dd
 import dask.array as da
 
@@ -66,7 +67,10 @@ def from_csv(
     """
 
     # Load csv as Dask DataFrame
-    ddf = dd.read_csv(file, blocksize=blocksize)
+    _dtypes = pd.read_csv(
+        file, nrows=10
+    ).dtypes.to_dict()  # Get dtypes from first 10 columns
+    ddf = dd.read_csv(file, blocksize=blocksize, dtype=_dtypes)
 
     # Assign default space-time pattern
     if spacetime_pattern is None:
@@ -155,6 +159,10 @@ def from_csv(
         stmat = stmat.set_coords(coords_cols)
 
     return stmat
+
+
+def _get_col_dtypes():
+    pass
 
 
 def _round_chunksize(size):
