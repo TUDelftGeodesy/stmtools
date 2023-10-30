@@ -72,3 +72,25 @@ class TestFromCSV:
             data = stmtools.from_csv(
                 path_example_csv, spacetime_pattern={"nonexist": "nonexist_data"}
             )
+
+    def test_readcsv_timevalues(self, tmp_path):
+        data = stmtools.from_csv(path_example_csv)
+        assert data.time.values[0] == pd.Timestamp("2016-03-27T00:00:00.0")
+        assert data.time.values[-1] == pd.Timestamp("2016-07-15T00:00:00.0")
+        # test if time is in the right order
+        assert (data.time.values[1:] - data.time.values[:-1]).min() > pd.Timedelta(
+            "0s"
+        )
+        assert len(data.time.values) == 11
+        assert data.time.dtype == "datetime64[ns]"
+
+        # test if time are not in correct format
+        df = pd.read_csv(path_example_csv)
+        # rename a column to make it not in the right format
+        df.rename(columns={
+            "d_20160429": "d_2016/4/29",
+            "a_20160429": "a_2016/4/29",
+            "h2ph_20160429": "h2ph_2016/4/29",}, inplace=True)
+        df.to_csv(tmp_path / "example.csv", index=False)
+        data = stmtools.from_csv(tmp_path / "example.csv")
+        assert data.time.values[0] == 0
