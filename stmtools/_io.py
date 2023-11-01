@@ -67,10 +67,7 @@ def from_csv(
     """
 
     # Load csv as Dask DataFrame
-    _dtypes = pd.read_csv(
-        file, nrows=10
-    ).dtypes.to_dict()  # Get dtypes from first 10 columns
-    ddf = dd.read_csv(file, blocksize=blocksize, dtype=_dtypes)
+    ddf = dd.read_csv(file, blocksize=blocksize)
 
     # Assign default space-time pattern
     if spacetime_pattern is None:
