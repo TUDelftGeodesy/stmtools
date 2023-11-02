@@ -22,6 +22,7 @@ authors = [
     {name = "Ou Ku", email = "o.ku@esciencecenter.nl"},
     {name = "Fakhereh Alidoost"},
     {name = "Pranav Chandramouli"},
+    {name = "Meiert Willem Grootes"},
     {name = "Francesco Nattino"},
     {name = "Thijs van Lankveld"},
     {name = "Freek van Leijen"},
