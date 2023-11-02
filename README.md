@@ -5,7 +5,13 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=MotionbyLearning_stmtools&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=MotionbyLearning_stmtools)
 [![Build](https://github.com/MotionbyLearning/stmtools/actions/workflows/build.yml/badge.svg)](https://github.com/MotionbyLearning/stmtools/actions/workflows/build.yml)
 
-`STMtools` is an open-source Xarray extension for Space-Time Matrix data. It is implemented for PSI-InSAR data processing.
+STMTools (Space-Time Matrix Tools) is an Xarray extension for Space-Time Matrix (*Bruna et al., 2021; van Leijen et al., 2021*). It provides tools to read, write, enrich, and manipulate a Space-Time Matrix (STM).
+
+A STM is a data array containing data with a space (point, location) and time (epoch) component, as well as contextual data. STMTools utilizes Xarray’s multi-dimensional labeling feature, and Zarr's chunk storage feature, to efficiently read and write large Space-Time matrices.
+
+The contextual data enrichment functionality is implemented with Dask. Therefore it can be performed in a paralleled style on Hyper-Performance Computation (HPC) systems.
+
+At this stage, stmtools specifically focus on the implementation for radar interferometry measurements, e.g. Persistent Scatterer, Distributed Scatterer, etc, with the possibility to be extended to other measurements with space and time attributes.
 
 ## Installation
 
