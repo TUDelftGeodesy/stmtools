@@ -1,6 +1,8 @@
 # STMtools: Space Time Matrix Toolbox
 
-[![DOI](https://zenodo.org/badge/556716843.svg)](https://zenodo.org/badge/latestdoi/556716843)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7717088.svg)](https://doi.org/10.5281/zenodo.7717088)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=MotionbyLearning_stmtools&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=MotionbyLearning_stmtools)
+[![Build](https://github.com/MotionbyLearning/stmtools/actions/workflows/build.yml/badge.svg)](https://github.com/MotionbyLearning/stmtools/actions/workflows/build.yml)
 
 `STMtools` is an Xarray extension for Space-Time Matrix data. At this stage, it is implemented for PSI-InSAR processing.
 ## Installation
