@@ -1,6 +1,7 @@
 # STMtools: Space Time Matrix Toolbox
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7717088.svg)](https://doi.org/10.5281/zenodo.7717088)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8027/badge)](https://www.bestpractices.dev/projects/8027)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=MotionbyLearning_stmtools&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=MotionbyLearning_stmtools)
 [![Build](https://github.com/MotionbyLearning/stmtools/actions/workflows/build.yml/badge.svg)](https://github.com/MotionbyLearning/stmtools/actions/workflows/build.yml)
 
