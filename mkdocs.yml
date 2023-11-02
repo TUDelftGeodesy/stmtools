@@ -6,13 +6,18 @@ nav:
   - Getting started: 
     - About STM Tools: index.md
     - Installation: setup.md
-  - Usage: usage.md
+  - Usage: 
+    - Initiate an STM: stm_init.md
+    - Enrich an STM: enrichment.md
+  - Notebook page: notebooks/demo_stm.ipynb
+  - Conributing guide: CONTRIBUTING.md
   - Change Log: CHANGELOG.md
 
 
 theme:
   name: material
   custom_dir: docs/notebooks/download_button
+  logo: img/stmtools_logo.png
   palette:
     # Palette toggle for light mode
     - scheme: default
