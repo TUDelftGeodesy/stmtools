@@ -4,7 +4,7 @@ import pytest
 from pathlib import Path
 import numpy as np
 
-path_example_csv = Path(__file__).parent / "../examples/data/example.csv"
+path_example_csv = Path(__file__).parent / "./data/example.csv"
 
 
 class TestFromCSV:
