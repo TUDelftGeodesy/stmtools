@@ -1,5 +1,5 @@
 
-# stmtools Contributing Guidelines
+# STMTools Contributing Guidelines
 
 
 We welcome any kind of contribution to our software, from simple comment 

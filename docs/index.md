@@ -1,8 +1,8 @@
 # STMTools
 
-(Space-Time Matrix Tools) is an Xarray extension for Space-Time Matrix (*Bruna et al., 2021; van Leijen et al., 2021*). It provides tools to read, write, enrich, and manipulate a Space-Time Matrix (STM).
+STMTools (Space-Time Matrix Tools) is an Xarray extension for Space-Time Matrix (*Bruna et al., 2021; van Leijen et al., 2021*). It provides tools to read, write, enrich, and manipulate a Space-Time Matrix (STM).
 
-A STM is a data array containing data with a space (point, location) and time (epoch) component, as well as contextual data. STMTools utilizes Xarray’s multi-dimensional labeling feature, and Zarr's chunk storage feature, to efficiently read and write large Space-Time matrices.
+An STM is a dataset containing data with a space (point, location) and time (epoch) component, as well as contextual data. STMTools utilizes Xarray’s multi-dimensional labeling feature, and Zarr's chunk storage feature, to efficiently read and write large Space-Time matrices.
 
 The contextual data enrichment functionality is implemented with Dask. Therefore it can be performed in a paralleled style on Hyper-Performance Computation (HPC) systems.
 

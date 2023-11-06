@@ -8,7 +8,7 @@ nav:
     - Installation: setup.md
   - Usage: 
     - Initiate an STM: stm_init.md
-    - Enrich an STM: enrichment.md
+    - Operations on STM: operations.md
   - Notebook page: notebooks/demo_stm.ipynb
   - Conributing guide: CONTRIBUTING.md
   - Change Log: CHANGELOG.md
