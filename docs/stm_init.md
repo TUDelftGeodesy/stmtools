@@ -6,6 +6,8 @@ STMTools provides a reader to perform lazy loading from a csv file. However, we 
 
 ## Manually initiate an STM
 
+When represented by `xarray.Dataset`, an STM is a `Dataset` object with "space" and "time" dimension. It can be initiated manually, e.g.:
+
 ```python
 # Define dimension sizes
 nspace = 10
@@ -46,6 +48,8 @@ Data variables:
 ```
 
 ## From a Zarr storage
+
+If an STM is stored in `.zarr` format, it can be read by `xarray.open_zarr` funtcion:
 
 ```python
 stm = xr.open_zarr('./stm.zarr')
