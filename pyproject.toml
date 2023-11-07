@@ -77,3 +77,6 @@ testpaths = [
 [tool.coverage.run]
 branch = true
 source = ["stmtools"]
+
+[tool.ruff]
+target-version = "py310"
