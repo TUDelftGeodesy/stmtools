@@ -5,6 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "stmtools"
 version = "0.1.0"
+requires-python = ">=3.10"
 dependencies = [
     "dask[complete]",
     "xarray",
@@ -49,6 +50,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "pycodestyle",
+    "ruff",
 ]
 docs = [
     "mkdocs",
