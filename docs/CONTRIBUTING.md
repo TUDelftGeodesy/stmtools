@@ -38,6 +38,7 @@ to see if someone already filed the same issue;
 - make sure the existing tests still work by running, e.g. `pytest tests`;
 - add your own tests (if necessary);
 - update or expand the documentation;
+- make sure the linting tests pass by running `ruff` in the project root directory: `ruff check .`;
 - [push](http://rogerdudler.github.io/git-guide/) your feature branch to (your fork of) the stmtools repository on GitHub;
 - create the pull request, e.g. following the instructions [here](https://help.github.com/articles/creating-a-pull-request/).
 
