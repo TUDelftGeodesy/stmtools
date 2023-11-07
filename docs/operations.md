@@ -37,6 +37,14 @@ For example, select entries with `pnt_enscoh` higher than 0.7:
 stmat_subset = stmat.stm.subset(method="threshold", var="pnt_enscoh", threshold='>0.7')
 ```
 
+This is equivelent to Xarray filtering:
+
+```python
+mask = stmat["pnt_enscoh"] > 0.7
+mask = mask.compute()
+stmat_subset = stmat.where(mask, drop=True)
+``` 
+
 ### By polygon
 
 Select all entries inside the polygons in `example_polygon.shp`:
