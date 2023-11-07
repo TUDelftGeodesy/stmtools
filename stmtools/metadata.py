@@ -1,6 +1,6 @@
 """
 Metadata schema module.
-Now the schema is implemented as annotations without enforcement. 
+Now the schema is implemented as annotations without enforcement.
 This is to leave future possibilities to enforce typing. (Aug 24, 2023)
 """
 

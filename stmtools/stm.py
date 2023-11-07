@@ -2,7 +2,7 @@ import logging
 import math
 from pathlib import Path
 from collections.abc import Iterable
-from typing import Literal, Union
+from typing import Union
 
 import xarray as xr
 import dask.array as da
@@ -47,11 +47,20 @@ class SpaceTimeMatrix:
 
     def regulate_dims(self, points_label=None, time_label=None):
         """
-        Regulate the dimension of a Space-Time Matrix instance. 
-        An STM should have two dimensions: "space" and "time". If the inupt argument `points_label` or `time_label` is specified, and that dimension exists, the function will rename that dimension to "space" or "time".
-        If either `points_label` or `time_label` are None, a "space" or "time" dimension with size 1 will be created.
-        If both `points_label` or `time_label` are None.
-        Data variables will also be regulated. For data variables with a name started with "pnt_", they are regared as point-only attribute and will not be affected by "time" dimension expansion.
+        Regulate the dimension of a Space-Time Matrix instance.
+
+        An STM should have two dimensions: "space" and "time".
+
+        If the inupt argument `points_label` or `time_label` is specified,
+        and that dimension exists, the function will rename that dimension to "space" or "time".
+
+        If either `points_label` or `time_label` are None, a "space" or "time" dimension with
+        size 1 will be created.
+
+        If both `points_label` or `time_label` are None. Data variables will also be regulated.
+
+        For data variables with a name started with "pnt_", they are regared as point-only attribute
+        and will not be affected by "time" dimension expansion.
 
         Parameters
         ----------
@@ -85,7 +94,7 @@ class SpaceTimeMatrix:
                     ds_reg = ds_reg.rename_dims({label: key})
                 else:
                     raise ValueError(f'"{key}" dimension label should be a string.')
-        
+
         # Re-order dimensions
         ds_reg = ds_reg.transpose("space", "time")
 
@@ -125,7 +134,9 @@ class SpaceTimeMatrix:
         # Check if both "space" and "time" dimension exists
         for dim in ["space", "time"]:
             if dim not in self._obj.dims.keys():
-                raise KeyError(f'Missing dimension: "{dim}". You can use the function ".regulate_dim()" to add it.')
+                raise KeyError(
+                    f'Missing dimension: "{dim}". You can use the function ".regulate_dim()" to add it.'
+                )
 
         match method:  # Match statements available only from python 3.10 onwards
             case "threshold":
@@ -186,7 +197,7 @@ class SpaceTimeMatrix:
                 )
                 # Select by rasterization results
                 subset = [
-                    item for item in np.unique(raster) if not (math.isnan(item)) == True
+                    item for item in np.unique(raster) if (math.isnan(item)) is not True
                 ]
                 data_xr_subset = self._obj.sel(space=subset)
             case "polygon":
@@ -204,7 +215,7 @@ class SpaceTimeMatrix:
                 )
                 idx = self._obj.space.data[mask.data]
                 data_xr_subset = self._obj.sel(space=idx)
-            case other:
+            case _:
                 raise NotImplementedError(
                     "Method: {} is not implemented.".format(method)
                 )
@@ -224,7 +235,9 @@ class SpaceTimeMatrix:
         Enrich the SpaceTimeMatrix from one or more attribute fields of a (multi-)polygon.
 
         Each attribute in fields will be assigned as a data variable to the STM.
-        If a point of the STM falls into the given polygon, the value of the specified field will be added. For space entries outside the (multi-)polygon, the value will be None.
+
+        If a point of the STM falls into the given polygon, the value of the specified field will be added.
+        For space entries outside the (multi-)polygon, the value will be None.
 
         Parameters
         ----------
@@ -360,7 +373,7 @@ class SpaceTimeMatrix:
 
     def register_datatype(self, keys: Union[str, Iterable], datatype: DataVarTypes):
         """
-        Register the specified data variables as a 
+        Register the specified data variables as a
 
         Parameters
         ----------
@@ -443,7 +456,8 @@ def _enrich_from_polygon_block(ds, polygon, fields, xlabel, ylabel, type_polygon
 
 def _ml_str_query(xx, yy, polygon, type_polygon):
     """
-    Test if a set of space entries is inside a (multi-)polygon using Sort-Tile-Recursive (STR) query, Get the match list.
+    Test if a set of space entries is inside a (multi-)polygon using Sort-Tile-Recursive (STR) query,
+    Get the match list.
 
     Parameters
     ----------
@@ -459,7 +473,9 @@ def _ml_str_query(xx, yy, polygon, type_polygon):
     Returns
     -------
     array_like
-        An array with two columns. The first column is the positional index into the list of polygons being used to query the tree. The second column is the positional index into the list of space entries for which the tree was constructed.
+        An array with two columns. The first column is the positional index into the list of polygons
+        being used to query the tree. The second column is the positional index into the list of space
+        entries for which the tree was constructed.
     """
 
     # Crop the polygon to the bounding box of the block
@@ -532,7 +548,8 @@ def _validate_coords(ds, xlabel, ylabel):
     Returns
     -------
     int
-        If xlabel and ylabel are in the coordinates of ds, return 1. If the they are in the data variables, return 2 and raise a warning
+        If xlabel and ylabel are in the coordinates of ds, return 1.
+        If the they are in the data variables, return 2 and raise a warning
 
     Raises
     ------
