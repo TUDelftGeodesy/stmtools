@@ -4,7 +4,7 @@ STMTools (Space-Time Matrix Tools) is an Xarray extension for Space-Time Matrix 
 
 An STM is a dataset containing data with a space (point, location) and time (epoch) component, as well as contextual data. STMTools utilizes Xarray’s multi-dimensional labeling feature, and Zarr's chunk storage feature, to efficiently read and write large Space-Time matrices.
 
-The contextual data enrichment functionality is implemented with Dask. Therefore it can be performed in a paralleled style on Hyper-Performance Computation (HPC) systems.
+The contextual data enrichment functionality is implemented with Dask. Therefore it can be performed in a paralleled style on High Performance Computing (HPC) systems.
 
 At this stage, stmtools specifically focus on the implementation for radar interferometry measurements, e.g. Persistent Scatterer, Distributed Scatterer, etc, with the possibility to be extended to other measurements with space and time attributes.
 

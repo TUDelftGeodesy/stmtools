@@ -1,4 +1,4 @@
-# Initialte an Space-Time Matrix
+# Initiate a Space-Time Matrix
 
 In Python, STM can be represented by an [`Xarray.Dataset`](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html) object. An STM instance can be initiated as an `Xarray.Dataset` in different ways. 
 
