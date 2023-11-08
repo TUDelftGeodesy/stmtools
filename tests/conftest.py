@@ -1,7 +1,8 @@
-import pytest
-import xarray as xr
 import dask.array as da
 import numpy as np
+import pytest
+import xarray as xr
+
 
 @pytest.fixture(scope="module")
 def stmat():
@@ -16,6 +17,10 @@ def stmat():
             phase=(
                 ["space", "time"],
                 da.arange(npoints * ntime).reshape((npoints, ntime)),
+            ),
+            pnt_height=(
+                ["space"],
+                da.arange(npoints),
             ),
         ),
         coords=dict(

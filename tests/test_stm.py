@@ -1,9 +1,15 @@
-import xarray as xr
+from pathlib import Path
+
 import dask.array as da
+import geopandas as gpd
 import numpy as np
 import pytest
-import geopandas as gpd
+import xarray as xr
 from shapely import geometry
+
+from stmtools.stm import _validate_coords
+
+path_multi_polygon = Path(__file__).parent / "./data/multi_polygon.gpkg"
 
 
 @pytest.fixture
@@ -39,9 +45,20 @@ def stmat_only_point():
             phase=(["space"], da.arange(npoints)),
             pnt_height=(["space"], da.arange(npoints)),
         ),
-        coords=dict(
-            lon=(["space"], da.arange(npoints)), lat=(["space"], da.arange(npoints))
+        coords=dict(lon=(["space"], da.arange(npoints)), lat=(["space"], da.arange(npoints))),
+    ).unify_chunks()
+
+
+@pytest.fixture
+def stmat_wrong_space_label():
+    npoints = 10
+    return xr.Dataset(
+        data_vars=dict(
+            amplitude=(["space2"], da.arange(npoints)),
+            phase=(["space2"], da.arange(npoints)),
+            pnt_height=(["space2"], da.arange(npoints)),
         ),
+        coords=dict(lon=(["space2"], da.arange(npoints)), lat=(["space2"], da.arange(npoints))),
     ).unify_chunks()
 
 
@@ -98,6 +115,11 @@ class TestRegulateDims:
         stm_reg = stmat_only_point.stm.regulate_dims()
         assert stm_reg.dims["time"] == 1
 
+    def test_time_dim_customed_label(self, stmat_wrong_space_label):
+        stm_reg = stmat_wrong_space_label.stm.regulate_dims(space_label="space2")
+        assert stm_reg.dims["time"] == 1
+        assert stm_reg.dims["space"] == 10
+
     def test_pnt_time_dim_nonexists(self, stmat_only_point):
         """
         For data variable with name pattern "pnt_*", there should be no time dimension.
@@ -107,26 +129,58 @@ class TestRegulateDims:
 
     def test_subset_works_after_regulate_dims(self, stmat_only_point):
         stm_reg = stmat_only_point.stm.regulate_dims()
-        stm_reg_subset = stm_reg.stm.subset(
-            method="threshold", var="pnt_height", threshold=">5"
-        )
+        stm_reg_subset = stm_reg.stm.subset(method="threshold", var="pnt_height", threshold=">5")
         assert stm_reg_subset.dims["space"] == 4
+
+    def test_validate_coords(self):
+        stmat_coords = xr.Dataset(
+            data_vars=dict(
+                data=(
+                    ["space", "time"],
+                    da.arange(5 * 10).reshape((10, 5)),
+                ),
+                x_coor=(["space"], np.arange(10)),
+                y_coor=(["space"], np.arange(10)),
+            ),
+            coords=dict(
+                x=(["space"], np.arange(10)),
+                y=(["space"], np.arange(10)),
+                time=(["time"], np.arange(5)),
+            ),
+        )
+
+        assert _validate_coords(stmat_coords, 'x', 'y') == 1
+        assert _validate_coords(stmat_coords, 'x_coor', 'y_coor') == 2
+        assert _validate_coords(stmat_coords, 'x', 'y_coor') == 2
+
+        with pytest.raises(ValueError):
+            _validate_coords(stmat_coords, 'x_non', 'y_non')
 
 
 class TestAttributes:
     def test_numpoints(self, stmat):
-        assert stmat.stm.numPoints == 10
+        assert stmat.stm.num_points == 10
 
     def test_numepochss(self, stmat):
-        assert stmat.stm.numEpochs == 5
+        assert stmat.stm.num_epochs == 5
 
+    def test_register_datatype(self, stmat):
+        stmat_with_dtype = stmat.stm.register_datatype("pnt_height", "pntAttrib")
+        assert "pnt_height" in stmat_with_dtype.attrs["pntAttrib"]
+
+    def test_register_datatype_nonexists(self, stmat):
+        with pytest.raises(ValueError):
+            stmat.stm.register_datatype("non_exist", "pntAttrib")
 
 class TestSubset:
     def test_check_missing_dimension(self, stmat_only_point):
         with pytest.raises(KeyError):
-            stmat_only_point.stm.subset(
-                method="threshold", var="pnt_height", threshold=">5"
-            )
+            stmat_only_point.stm.subset(method="threshold", var="pnt_height", threshold=">5")
+
+    def test_check_missing_value(self, stmat):
+        with pytest.raises(ValueError):
+            stmat.stm.subset(method="threshold", var="pnt_height", threshold=">")
+            stmat.stm.subset(method="threshold", var="pnt_height", threshold="<")
 
     def test_method_not_implemented(self, stmat):
         with pytest.raises(NotImplementedError):
@@ -138,7 +192,7 @@ class TestSubset:
         v_thres = np.ones(
             stmat.space.shape,
         )
-        v_thres[0:3] = 2
+        v_thres[0:3] = 3
         stmat = stmat.assign(
             {
                 "thres": (
@@ -147,8 +201,10 @@ class TestSubset:
                 )
             }
         )
-        stmat_subset = stmat.stm.subset(method="threshold", var="thres", threshold=">1")
-        assert stmat_subset.equals(stmat.sel(space=[0, 1, 2]))
+        stmat_subset_larger = stmat.stm.subset(method="threshold", var="thres", threshold=">2")
+        stmat_subset_lower = stmat.stm.subset(method="threshold", var="thres", threshold="<2")
+        assert stmat_subset_larger.equals(stmat.sel(space=[0, 1, 2]))
+        assert stmat_subset_lower.equals(stmat.sel(space=range(3, 10, 1)))
 
     def test_subset_with_polygons(self, stmat, polygon):
         stmat_subset = stmat.stm.subset(method="polygon", polygon=polygon)
@@ -162,6 +218,10 @@ class TestSubset:
 
     def test_subset_with_multi_polygons(self, stmat, multi_polygon):
         stmat_subset = stmat.stm.subset(method="polygon", polygon=multi_polygon)
+        assert stmat_subset.equals(stmat.sel(space=[2, 6]))
+
+    def test_subset_with_multi_polygons_file(self, stmat):
+        stmat_subset = stmat.stm.subset(method="polygon", polygon=path_multi_polygon)
         assert stmat_subset.equals(stmat.sel(space=[2, 6]))
 
 
@@ -203,3 +263,22 @@ class TestEnrichment:
             results = stmat[field].data.compute()
             results = [res for res in results if res is not None]
             assert np.all(results == np.array(multi_polygon[field]))
+
+    def test_enrich_multi_fields_multi_polygon_from_file(self, stmat):
+        multi_polygon = gpd.read_file(path_multi_polygon)
+        fields = multi_polygon.columns[0:2]
+        stmat = stmat.stm.enrich_from_polygon(path_multi_polygon, fields)
+        for field in fields:
+            assert field in stmat.data_vars
+
+            results = stmat[field].data.compute()
+            results = [res for res in results if res is not None]
+            assert np.all(results == np.array(multi_polygon[field]))
+
+    def test_enrich_exetions(self, stmat, multi_polygon):
+        with pytest.raises(NotImplementedError):
+            # int not implemented for polygons
+            stmat = stmat.stm.enrich_from_polygon(999, "field")
+
+        with pytest.raises(ValueError):
+            stmat = stmat.stm.enrich_from_polygon(multi_polygon, "non_exist_field")
