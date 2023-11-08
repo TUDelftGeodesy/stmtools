@@ -156,41 +156,6 @@ class SpaceTimeMatrix:
                     data_xr_subset = self._obj.where(idx, drop=True)
                 else:
                     raise ValueError("Suitable relational operator not found! Please check input")
-            case "density":
-                _check_density_kwargs(**kwargs)  # Check for all require kwargs
-                gdf = gpd.GeoDataFrame(
-                    self._obj["space"],
-                    geometry=gpd.points_from_xy(self._obj[kwargs["x"]], self._obj[kwargs["y"]]),
-                )
-                # Make a 2D grid based on the space coverage and input density threshold
-                grid_cell = ((shapes) for shapes in zip(gdf.geometry, gdf.index, strict=True))
-                out_x = math.ceil(
-                    (max(self._obj[kwargs["x"]]) - min(self._obj[kwargs["x"]])) / kwargs["dx"]
-                )
-                out_y = math.ceil(
-                    (max(self._obj[kwargs["y"]]) - min(self._obj[kwargs["y"]])) / kwargs["dy"]
-                )
-                # Rasterize the space entries
-                # If multiple space entries in one gridcell, only the first point will be recorded
-                # In this way one point is selected per gridcell
-                raster = features.rasterize(
-                    shapes=grid_cell,
-                    out_shape=[out_x, out_y],
-                    fill=np.NAN,
-                    all_touched=True,
-                    default_value=1,
-                    transform=affine.Affine.from_gdal(
-                        min(self._obj[kwargs["x"]]),
-                        kwargs["dx"],
-                        0.0,
-                        max(self._obj[kwargs["y"]]),
-                        0.0,
-                        -1 * kwargs["dy"],
-                    ),
-                )
-                # Select by rasterization results
-                subset = [item for item in np.unique(raster) if (math.isnan(item)) is not True]
-                data_xr_subset = self._obj.sel(space=subset)
             case "polygon":
                 _check_polygon_kwargs(**kwargs)
                 if "xlabel" not in kwargs:
@@ -491,16 +456,6 @@ def _check_polygon_kwargs(**kwargs):
     for i in req_kwargs:
         if i not in kwargs:
             raise ValueError(f"Missing expected keyword argument: {i}")
-
-
-def _check_density_kwargs(**kwargs):
-    req_kwargs = ["x", "y", "dx", "dy"]
-    for i in req_kwargs:
-        if i not in kwargs:
-            raise ValueError("Missing expected keyword argument: %s" % i)
-        if i in ["dx", "dy"]:
-            if not isinstance(kwargs[i], float):
-                raise ValueError("Keyword argument %s should be an floating point number" % i)
 
 
 def _validate_coords(ds, xlabel, ylabel):
