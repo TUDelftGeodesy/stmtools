@@ -44,25 +44,25 @@ class SpaceTimeMatrix:
         self._obj = self._obj.assign_attrs(metadata)
         return self._obj
 
-    def regulate_dims(self, points_label=None, time_label=None):
+    def regulate_dims(self, space_label=None, time_label=None):
         """Regulate the dimension of a Space-Time Matrix instance.
 
         An STM should have two dimensions: "space" and "time".
 
-        If the inupt argument `points_label` or `time_label` is specified,
+        If the inupt argument `space_label` or `time_label` is specified,
         and that dimension exists, the function will rename that dimension to "space" or "time".
 
-        If either `points_label` or `time_label` are None, a "space" or "time" dimension with
+        If either `space_label` or `time_label` are None, a "space" or "time" dimension with
         size 1 will be created.
 
-        If both `points_label` or `time_label` are None. Data variables will also be regulated.
+        If both `space_label` or `time_label` are None. Data variables will also be regulated.
 
         For data variables with a name started with "pnt_", they are regared as
         point-only attribute and will not be affected by "time" dimension expansion.
 
         Parameters
         ----------
-        points_label : str, optional
+        space_label : str, optional
             Dimension to be renamed as "space", by default None.
         time_label : _type_, optional
             Dimension to be renamed as "time", by default None.
@@ -73,18 +73,18 @@ class SpaceTimeMatrix:
             Regulated STM.
         """
         if (
-            (points_label is None)
+            (space_label is None)
             and (time_label is None)
             and all([k not in self._obj.dims.keys() for k in ["space", "time"]])
         ):
             raise ValueError(
                 'No "space" nor "time" dimension found. \
-                You should specify either "points_label" or ""time_label'
+                You should specify either "space_label" or ""time_label'
             )
 
         # Check time dimension
         ds_reg = self._obj
-        for key, label in zip(["space", "time"], [points_label, time_label], strict=True):
+        for key, label in zip(["space", "time"], [space_label, time_label], strict=True):
             if key not in self._obj.dims.keys():
                 if label is None:
                     ds_reg = ds_reg.expand_dims({key: 1})
