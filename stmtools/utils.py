@@ -1,8 +1,7 @@
-from typing import Union
 from collections.abc import Iterable
 
 
-def _has_property(ds, keys: Union[str, Iterable]):
+def _has_property(ds, keys: str | Iterable):
     if isinstance(keys, str):
         return keys in ds.data_vars.keys()
     elif isinstance(keys, Iterable):

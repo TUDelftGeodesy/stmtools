@@ -1,15 +1,15 @@
-"""_io.py
-"""
-from datetime import datetime
-import re
-import math
-from pathlib import Path
-from typing import List, Dict
+"""io module."""
+
 import logging
-import xarray as xr
-import numpy as np
-import dask.dataframe as dd
+import math
+import re
+from datetime import datetime
+from pathlib import Path
+
 import dask.array as da
+import dask.dataframe as dd
+import numpy as np
+import xarray as xr
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +17,13 @@ logger = logging.getLogger(__name__)
 def from_csv(
     file: str | Path,
     space_pattern: str = "^pnt_",
-    spacetime_pattern: Dict[str, str] = None,
-    coords_cols: List[str] | Dict[str, str] = None,
-    output_chunksize: Dict[str, int] = None,
+    spacetime_pattern: dict[str, str] = None,
+    coords_cols: list[str] | dict[str, str] = None,
+    output_chunksize: dict[str, int] = None,
     blocksize: int | str = 200e6,
 ) -> xr.Dataset:
     """Initiate an STM instance from a csv file.
+
     The specified csv file will be loaded using `dask.dataframe.read_csv` with a fixed blocksize.
 
     The columns of the csv file will be classified into coordinates, and data variables.
@@ -43,6 +44,7 @@ def from_csv(
       the output STM will be a monotonic integer series starting from 0.
 
     Args:
+    ----
         file (str | Path): Path to the csv file.
         space_pattern (str, optional): RE pattern to match space attribute columns.
           Defaults to "^pnt_".
@@ -62,9 +64,9 @@ def from_csv(
           [dask.dataframe.read_csv](https://docs.dask.org/en/stable/generated/dask.dataframe.read_csv.html)
 
     Returns:
+    -------
         xr.Dataset: Output STM instance
     """
-
     # Load csv as Dask DataFrame
     ddf = dd.read_csv(file, blocksize=blocksize)
 
@@ -79,9 +81,7 @@ def from_csv(
     for k in spacetime_pattern.keys():
         flag_st_match = _any_match(k, ddf.columns)  # Any space-time patter match
         if not flag_st_match:
-            raise ValueError(
-                f'Pattern "{k}" in spacetime_pattern does not match any column'
-            )
+            raise ValueError(f'Pattern "{k}" in spacetime_pattern does not match any column')
 
     # Take the first column and compute the chunk sizes
     # Then convert ddf to dask array
@@ -161,12 +161,12 @@ def from_csv(
 
 
 def _round_chunksize(size):
-    """round size to next 5000"""
+    """Round size to next 5000."""
     return math.ceil(size / 5000) * 5000
 
 
 def _any_match(pattern, columns):
-    """If a pattern match any columns"""
+    """If a pattern match any columns."""
     flag_match = False  # Any space-time patter match
     for column in columns:
         if re.match(re.compile(pattern), column):
@@ -177,7 +177,7 @@ def _any_match(pattern, columns):
 
 
 def _extract_times(pattern, columns):
-    """Extract times from column names for each variable in spacetime_pattern"""
+    """Extract times from column names for each variable in spacetime_pattern."""
     times = []
     for column in columns:
         if re.match(re.compile(pattern), column):
@@ -186,8 +186,7 @@ def _extract_times(pattern, columns):
 
 
 def _convert_times(spacetime_pattern, columns_names):
-    """Convert time series to datetime objects np.datetime64"""
-
+    """Convert time series to datetime objects np.datetime64."""
     # Extract times from column names for each variable in spacetime_pattern
     dict_times = {}
     for k in spacetime_pattern.keys():

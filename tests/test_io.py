@@ -1,8 +1,10 @@
-import stmtools
+from pathlib import Path
+
+import numpy as np
 import pandas as pd
 import pytest
-from pathlib import Path
-import numpy as np
+
+import stmtools
 
 path_example_csv = Path(__file__).parent / "./data/example.csv"
 
@@ -35,9 +37,7 @@ class TestFromCSV:
         assert set(data_vars) == set(expected_columns)
 
     def test_readcsv_output_chunksize(self):
-        data = stmtools.from_csv(
-            path_example_csv, output_chunksize={"space": 1000, "time": -1}
-        )
+        data = stmtools.from_csv(path_example_csv, output_chunksize={"space": 1000, "time": -1})
         assert data.chunks["space"][0] == 1000
         assert data.chunks["time"][0] == 11
 
@@ -47,11 +47,7 @@ class TestFromCSV:
             spacetime_pattern={"^d_": "defo", "^a_": "amp", "^h2ph_": "h2ph"},
         )
         assert set(["defo", "amp"]).issubset([k for k in data.data_vars.keys()])
-        assert not (
-            set(["deformation", "amplitude"]).issubset(
-                [k for k in data.data_vars.keys()]
-            )
-        )
+        assert not (set(["deformation", "amplitude"]).issubset([k for k in data.data_vars.keys()]))
 
     def test_readcsv_list_coords(self):
         data = stmtools.from_csv(path_example_csv, coords_cols=["pnt_lat", "pnt_lon"])
@@ -63,9 +59,7 @@ class TestFromCSV:
             path_example_csv, coords_cols={"pnt_lat": "lat_cus", "pnt_lon": "lon_cus"}
         )
         assert set(["lat_cus", "lat_cus"]).issubset([k for k in data.coords.keys()])
-        assert not (
-            set(["pnt_lat", "pnt_lat"]).issubset([k for k in data.coords.keys()])
-        )
+        assert not (set(["pnt_lat", "pnt_lat"]).issubset([k for k in data.coords.keys()]))
         assert not (set(["lat", "lon"]).issubset([k for k in data.coords.keys()]))
 
     def test_readcsv_wrong_pattern(self):
@@ -103,6 +97,6 @@ class TestFromCSV:
         data_pd = pd.read_csv(path_example_csv)
         for key, dtype in dict(data.data_vars.dtypes).items():
             if key == "pnt_id":
-                dtype.type is np.str_
+                assert dtype.type is np.str_
             elif "pnt" in key:
-                dtype.type is data_pd.dtypes[key].type
+                assert dtype.type is data_pd.dtypes[key].type

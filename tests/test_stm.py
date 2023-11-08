@@ -1,8 +1,8 @@
-import xarray as xr
 import dask.array as da
+import geopandas as gpd
 import numpy as np
 import pytest
-import geopandas as gpd
+import xarray as xr
 from shapely import geometry
 
 
@@ -39,9 +39,7 @@ def stmat_only_point():
             phase=(["space"], da.arange(npoints)),
             pnt_height=(["space"], da.arange(npoints)),
         ),
-        coords=dict(
-            lon=(["space"], da.arange(npoints)), lat=(["space"], da.arange(npoints))
-        ),
+        coords=dict(lon=(["space"], da.arange(npoints)), lat=(["space"], da.arange(npoints))),
     ).unify_chunks()
 
 
@@ -107,26 +105,22 @@ class TestRegulateDims:
 
     def test_subset_works_after_regulate_dims(self, stmat_only_point):
         stm_reg = stmat_only_point.stm.regulate_dims()
-        stm_reg_subset = stm_reg.stm.subset(
-            method="threshold", var="pnt_height", threshold=">5"
-        )
+        stm_reg_subset = stm_reg.stm.subset(method="threshold", var="pnt_height", threshold=">5")
         assert stm_reg_subset.dims["space"] == 4
 
 
 class TestAttributes:
     def test_numpoints(self, stmat):
-        assert stmat.stm.numPoints == 10
+        assert stmat.stm.num_points == 10
 
     def test_numepochss(self, stmat):
-        assert stmat.stm.numEpochs == 5
+        assert stmat.stm.num_epochs == 5
 
 
 class TestSubset:
     def test_check_missing_dimension(self, stmat_only_point):
         with pytest.raises(KeyError):
-            stmat_only_point.stm.subset(
-                method="threshold", var="pnt_height", threshold=">5"
-            )
+            stmat_only_point.stm.subset(method="threshold", var="pnt_height", threshold=">5")
 
     def test_method_not_implemented(self, stmat):
         with pytest.raises(NotImplementedError):

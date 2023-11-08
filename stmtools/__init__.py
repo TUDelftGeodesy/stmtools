@@ -1,3 +1,5 @@
+"""stmtools."""
+
 from stmtools import stm
 from stmtools._io import from_csv
 
