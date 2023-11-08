@@ -1,16 +1,13 @@
 """space-time matrix module."""
 
 import logging
-import math
 from collections.abc import Iterable
 from pathlib import Path
 
-import affine
 import dask.array as da
 import geopandas as gpd
 import numpy as np
 import xarray as xr
-from rasterio import features
 from shapely.geometry import Point
 from shapely.strtree import STRtree
 

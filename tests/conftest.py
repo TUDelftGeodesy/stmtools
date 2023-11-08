@@ -18,6 +18,10 @@ def stmat():
                 ["space", "time"],
                 da.arange(npoints * ntime).reshape((npoints, ntime)),
             ),
+            pnt_height=(
+                ["space"],
+                da.arange(npoints),
+            ),
         ),
         coords=dict(
             lon=(["space"], da.arange(npoints)),

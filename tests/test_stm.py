@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import dask.array as da
 import geopandas as gpd
 import numpy as np
@@ -5,6 +7,7 @@ import pytest
 import xarray as xr
 from shapely import geometry
 
+path_multi_polygon = Path(__file__).parent / "./data/multi_polygon.gpkg"
 
 @pytest.fixture
 def stmat_rd():
@@ -40,6 +43,18 @@ def stmat_only_point():
             pnt_height=(["space"], da.arange(npoints)),
         ),
         coords=dict(lon=(["space"], da.arange(npoints)), lat=(["space"], da.arange(npoints))),
+    ).unify_chunks()
+
+@pytest.fixture
+def stmat_wrong_space_label():
+    npoints = 10
+    return xr.Dataset(
+        data_vars=dict(
+            amplitude=(["space2"], da.arange(npoints)),
+            phase=(["space2"], da.arange(npoints)),
+            pnt_height=(["space2"], da.arange(npoints)),
+        ),
+        coords=dict(lon=(["space2"], da.arange(npoints)), lat=(["space2"], da.arange(npoints))),
     ).unify_chunks()
 
 
@@ -95,6 +110,11 @@ class TestRegulateDims:
     def test_time_dim_size_one(self, stmat_only_point):
         stm_reg = stmat_only_point.stm.regulate_dims()
         assert stm_reg.dims["time"] == 1
+    
+    def test_time_dim_customed_label(self, stmat_wrong_space_label):
+        stm_reg = stmat_wrong_space_label.stm.regulate_dims(space_label="space2")
+        assert stm_reg.dims["time"] == 1
+        assert stm_reg.dims["space"] == 10
 
     def test_pnt_time_dim_nonexists(self, stmat_only_point):
         """
@@ -122,6 +142,11 @@ class TestSubset:
         with pytest.raises(KeyError):
             stmat_only_point.stm.subset(method="threshold", var="pnt_height", threshold=">5")
 
+    def test_check_missing_value(self, stmat):
+        with pytest.raises(ValueError):
+            stmat.stm.subset(method="threshold", var="pnt_height", threshold=">")
+            stmat.stm.subset(method="threshold", var="pnt_height", threshold="<")
+
     def test_method_not_implemented(self, stmat):
         with pytest.raises(NotImplementedError):
             stmat.stm.subset(method="something_else")
@@ -132,7 +157,7 @@ class TestSubset:
         v_thres = np.ones(
             stmat.space.shape,
         )
-        v_thres[0:3] = 2
+        v_thres[0:3] = 3
         stmat = stmat.assign(
             {
                 "thres": (
@@ -141,8 +166,10 @@ class TestSubset:
                 )
             }
         )
-        stmat_subset = stmat.stm.subset(method="threshold", var="thres", threshold=">1")
-        assert stmat_subset.equals(stmat.sel(space=[0, 1, 2]))
+        stmat_subset_larger = stmat.stm.subset(method="threshold", var="thres", threshold=">2")
+        stmat_subset_lower = stmat.stm.subset(method="threshold", var="thres", threshold="<2")
+        assert stmat_subset_larger.equals(stmat.sel(space=[0, 1, 2]))
+        assert stmat_subset_lower.equals(stmat.sel(space=range(3, 10, 1)))
 
     def test_subset_with_polygons(self, stmat, polygon):
         stmat_subset = stmat.stm.subset(method="polygon", polygon=polygon)
@@ -156,6 +183,10 @@ class TestSubset:
 
     def test_subset_with_multi_polygons(self, stmat, multi_polygon):
         stmat_subset = stmat.stm.subset(method="polygon", polygon=multi_polygon)
+        assert stmat_subset.equals(stmat.sel(space=[2, 6]))
+    
+    def test_subset_with_multi_polygons_file(self, stmat):
+        stmat_subset = stmat.stm.subset(method="polygon", polygon=path_multi_polygon)
         assert stmat_subset.equals(stmat.sel(space=[2, 6]))
 
 
