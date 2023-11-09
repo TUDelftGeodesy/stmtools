@@ -7,6 +7,7 @@ from pathlib import Path
 import dask.array as da
 import geopandas as gpd
 import numpy as np
+import pymorton as pm
 import xarray as xr
 from shapely.geometry import Point
 from shapely.strtree import STRtree
@@ -491,3 +492,19 @@ def _validate_coords(ds, xlabel, ylabel):
             else:
                 raise ValueError(f'Coordinate label "{clabel}" was not found.')
     return 1
+
+def _compute_order(xx, yy):
+    return pm.interleave(xx, yy)
+
+def _get_order(self, xlabel="azimuth", ylabel="range"):
+    meta_arr = np.array((), dtype=_dtypes["integer"])
+    order = da.apply_gufunc(
+        _compute_order, "()->()", self._obj[xlabel], self._obj[ylabel], meta=meta_arr
+    )
+    self._obj = self._obj.assign({"order": order})
+    return self._obj
+
+@dask.delayed
+def reorder(self, xlabel="azimuth", ylabel="range"):
+    self.stm._get_order(xlabel, ylabel)
+    self.stm._obj.sortby("order")
