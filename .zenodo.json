@@ -1,0 +1,40 @@
+{
+  "creators": [
+    {
+      "affiliation": "Netherlands eScience Center",
+      "name": "Ku, Ou",
+      "orcid": "0000-0002-5373-5209"
+    },
+    {
+      "name": "Alidoost, Fakhereh (Sarah)"
+    },
+    {
+      "name": "Chandramouli, Pranav"
+    },
+    {
+      "name": "Grootes, Meiert Willem"
+    },
+    {
+      "name": "van Lankveld, Thijs"
+    },
+    {
+      "name": "Nattino, Francesco"
+    },
+    {
+      "name": "van Leijen, Freek"
+    }
+  ],
+  "description": "STMTools is an open-source Xarray extension for Space-Time Matrix.",
+  "keywords": [
+    "earth-observation",
+    "radar",
+    "insar",
+    "psi",
+    "space-time matrix",
+    "distributed computation"
+  ],
+  "license": {
+    "id": "Apache-2.0"
+  },
+  "title": "stmtools"
+}

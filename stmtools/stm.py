@@ -1,36 +1,32 @@
-import xarray as xr
-from rasterio import features
-import math
-import numpy as np
-import geopandas as gpd
-import affine
-from pathlib import Path
-from shapely.strtree import STRtree
-from shapely.geometry import Point
-from collections.abc import Iterable
-import dask.array as da
+"""space-time matrix module."""
 
 import logging
+from collections.abc import Iterable
+from pathlib import Path
+
+import dask.array as da
+import geopandas as gpd
+import numpy as np
+import xarray as xr
+from shapely.geometry import Point
+from shapely.strtree import STRtree
+
+from stmtools.metadata import DataVarTypes, STMMetaData
+from stmtools.utils import _has_property
 
 logger = logging.getLogger(__name__)
-
-# Inspiration:
-#   - https://docs.xarray.dev/en/stable/internals/extending-xarray.html
-#   - https://corteva.github.io/rioxarray/html/_modules/rioxarray/raster_dataset.html
 
 
 @xr.register_dataset_accessor("stm")
 class SpaceTimeMatrix:
-    """
-    Space-Time Matrix
-    """
+    """Space-Time Matrix."""
 
     def __init__(self, xarray_obj):
+        """init."""
         self._obj = xarray_obj
 
     def add_metadata(self, metadata):
-        """
-        Assign metadata to the STM.
+        """Assign metadata to the STM.
 
         Parameters
         ----------
@@ -45,93 +41,118 @@ class SpaceTimeMatrix:
         self._obj = self._obj.assign_attrs(metadata)
         return self._obj
 
-    def subset(self, method: str, **kwargs):
+    def regulate_dims(self, space_label=None, time_label=None):
+        """Regulate the dimension of a Space-Time Matrix instance.
+
+        An STM should have two dimensions: "space" and "time".
+
+        If the inupt argument `space_label` or `time_label` is specified,
+        and that dimension exists, the function will rename that dimension to "space" or "time".
+
+        If either `space_label` or `time_label` are None, a "space" or "time" dimension with
+        size 1 will be created.
+
+        If both `space_label` or `time_label` are None. Data variables will also be regulated.
+
+        For data variables with a name started with "pnt_", they are regared as
+        point-only attribute and will not be affected by "time" dimension expansion.
+
+        Parameters
+        ----------
+        space_label : str, optional
+            Dimension to be renamed as "space", by default None.
+        time_label : _type_, optional
+            Dimension to be renamed as "time", by default None.
+
+        Returns
+        -------
+        xarray.Dataset
+            Regulated STM.
         """
-        Select a subset of the STM
+        if (
+            (space_label is None)
+            and (time_label is None)
+            and all([k not in self._obj.dims.keys() for k in ["space", "time"]])
+        ):
+            raise ValueError(
+                'No "space" nor "time" dimension found. \
+                You should specify either "space_label" or ""time_label'
+            )
+
+        # Check time dimension
+        ds_reg = self._obj
+        for key, label in zip(["space", "time"], [space_label, time_label], strict=True):
+            if key not in self._obj.dims.keys():
+                if label is None:
+                    ds_reg = ds_reg.expand_dims({key: 1})
+                elif isinstance(label, str):
+                    ds_reg = ds_reg.rename_dims({label: key})
+                else:
+                    raise ValueError(f'"{key}" dimension label should be a string.')
+
+        # Re-order dimensions
+        ds_reg = ds_reg.transpose("space", "time")
+
+        # Squeeze the time dimension for all point attibutes, if exists
+        pnt_vars = [var for var in ds_reg.data_vars.keys() if var.startswith("pnt_")]
+        for var in pnt_vars:
+            if "time" in ds_reg[var].dims:
+                ds_reg[var] = ds_reg[var].squeeze(dim="time")
+
+        return ds_reg
+
+    def subset(self, method: str, **kwargs):
+        """Select a subset of the STM.
 
         Parameters
         ----------
         method : str
             Method of subsetting. Choose from "threshold", "density" and "polygon".
-            - threshold: select all points with a threshold criterion, e.g.
+            - threshold: select all space entries with a threshold criterion, e.g.
                 data_xr.stm.subset(method="threshold", var="thres", threshold='>1')
             - density: select one point in every [dx, dy] cell, e.g.
-                data_xr.stm.subset(method='density', dx=0.1, dy=0.1)
-            - polygon: select all points inside a given polygon, e.g.
+                data_xr.stm.subset(method="density", dx=0.1, dy=0.1)
+            - polygon: select all space entries inside a given polygon, e.g.
                 data_xr.stm.subset(method='polygon', polygon=path_polygon_file)
                 or
                 import geopandas as gpd
                 polygon = gpd.read_file(path_polygon_file)
                 data_xr.stm.subset(method='polygon', polygon=polygon)
+        **kwargs:
+            - when method="threshold": data variable "var" and  threshold "threshold"
+            - when method="density": x and y density size: "dx" and "dy"
+            - when method="polygon": polygon geodataframe instance or file: "polygon"
 
         Returns
         -------
         xarray.Dataset
             A subset of the original STM.
         """
+        # Check if both "space" and "time" dimension exists
+        for dim in ["space", "time"]:
+            if dim not in self._obj.dims.keys():
+                raise KeyError(
+                    f'Missing dimension: "{dim}". \
+                    You can use the function ".regulate_dim()" to add it.'
+                )
 
         match method:  # Match statements available only from python 3.10 onwards
             case "threshold":
-                _check_threshold_kwargs(
-                    **kwargs
-                )  # Check is all required kwargs are available
+                _check_threshold_kwargs(**kwargs)  # Check is all required kwargs are available
                 if kwargs["threshold"][0] == "<":
                     str_parts = kwargs["threshold"].partition("<")
-                    check_mult_relops(
+                    _check_mult_relops(
                         str_parts[2]
                     )  # Check to ensure multiple relational operators are not present
                     idx = (self._obj[kwargs["var"]] < float(str_parts[2])).compute()
                     data_xr_subset = self._obj.where(idx, drop=True)
                 elif kwargs["threshold"][0] == ">":
                     str_parts = kwargs["threshold"].partition(">")
-                    check_mult_relops(str_parts[2])
+                    _check_mult_relops(str_parts[2])
                     idx = (self._obj[kwargs["var"]] > float(str_parts[2])).compute()
                     data_xr_subset = self._obj.where(idx, drop=True)
                 else:
-                    raise Exception(
-                        "Suitable relational operator not found! Please check input"
-                    )
-            case "density":
-                check_density_kwargs(**kwargs)  # Check for all require kwargs
-                gdf = gpd.GeoDataFrame(
-                    self._obj["points"],
-                    geometry=gpd.points_from_xy(
-                        self._obj[kwargs["x"]], self._obj[kwargs["y"]]
-                    ),
-                )
-                # Make a 2D grid based on the points coverage and input density threshold
-                grid_cell = ((shapes) for shapes in zip(gdf.geometry, gdf.index))
-                out_x = math.ceil(
-                    (max(self._obj[kwargs["x"]]) - min(self._obj[kwargs["x"]]))
-                    / kwargs["dx"]
-                )
-                out_y = math.ceil(
-                    (max(self._obj[kwargs["y"]]) - min(self._obj[kwargs["y"]]))
-                    / kwargs["dy"]
-                )
-                # Rasterize the points
-                # If multiple points in one gridcell, only the first point will be recorded
-                # In this way one point is selected per gridcell
-                raster = features.rasterize(
-                    shapes=grid_cell,
-                    out_shape=[out_x, out_y],
-                    fill=np.NAN,
-                    all_touched=True,
-                    default_value=1,
-                    transform=affine.Affine.from_gdal(
-                        min(self._obj[kwargs["x"]]),
-                        kwargs["dx"],
-                        0.0,
-                        max(self._obj[kwargs["y"]]),
-                        0.0,
-                        -1 * kwargs["dy"],
-                    ),
-                )
-                # Select by rasterization results
-                subset = [
-                    item for item in np.unique(raster) if not (math.isnan(item)) == True
-                ]
-                data_xr_subset = self._obj.sel(points=subset)
+                    raise ValueError("Suitable relational operator not found! Please check input")
             case "polygon":
                 _check_polygon_kwargs(**kwargs)
                 if "xlabel" not in kwargs:
@@ -142,19 +163,13 @@ class SpaceTimeMatrix:
                     keyy = "lat"
                 else:
                     keyy = kwargs["ylabel"]
-                mask = self._obj.stm._in_polygon(
-                    kwargs["polygon"], xlabel=keyx, ylabel=keyy
-                )
-                idx = self._obj.points.data[mask.data]
-                data_xr_subset = self._obj.sel(points=idx)
-            case other:
-                raise NotImplementedError(
-                    "Method: {} is not implemented.".format(method)
-                )
+                mask = self._obj.stm._in_polygon(kwargs["polygon"], xlabel=keyx, ylabel=keyy)
+                idx = self._obj.space.data[mask.data]
+                data_xr_subset = self._obj.sel(space=idx)
+            case _:
+                raise NotImplementedError(f"Method: {method} is not implemented.")
         chunks = {
-            "points": min(
-                self._obj.chunksizes["points"][0], data_xr_subset.points.shape[0]
-            ),
+            "space": min(self._obj.chunksizes["space"][0], data_xr_subset.space.shape[0]),
             "time": min(self._obj.chunksizes["time"][0], data_xr_subset.time.shape[0]),
         }
 
@@ -163,11 +178,14 @@ class SpaceTimeMatrix:
         return data_xr_subset
 
     def enrich_from_polygon(self, polygon, fields, xlabel="lon", ylabel="lat"):
-        """
-        Enrich the SpaceTimeMatrix from one or more attribute fields of a (multi-)polygon.
+        """Enrich the SpaceTimeMatrix from one or more attribute fields of a (multi-)polygon.
 
         Each attribute in fields will be assigned as a data variable to the STM.
-        If a point of the STM falls into the given polygon, the value of the specified field will be added. For points outside the (multi-)polygon, the value will be None.
+
+        If a point of the STM falls into the given polygon, the value of the specified field will
+        be added.
+
+        For space entries outside the (multi-)polygon, the value will be None.
 
         Parameters
         ----------
@@ -197,7 +215,7 @@ class SpaceTimeMatrix:
         if isinstance(polygon, gpd.GeoDataFrame):
             type_polygon = "GeoDataFrame"
             polygon_one_row = polygon.iloc[0:1]
-        elif isinstance(polygon, Path) or isinstance(polygon, str):
+        elif isinstance(polygon, Path | str):
             type_polygon = "File"
             polygon_one_row = gpd.read_file(polygon, rows=1)
         else:
@@ -206,19 +224,17 @@ class SpaceTimeMatrix:
         # Check if fields exists in polygon
         for field in fields:
             if field not in polygon_one_row.columns:
-                raise ValueError(
-                    'Field "{}" not found in the the input polygon'.format(field)
-                )
+                raise ValueError(f'Field "{field}" not found in the the input polygon')
 
         # Enrich all fields
         ds = self._obj
-        chunks = (ds.chunksizes["points"][0],)  # Assign an empty fields to ds
+        chunks = (ds.chunksizes["space"][0],)  # Assign an empty fields to ds
         for field in fields:
             ds = ds.assign(
                 {
                     field: (
-                        ["points"],
-                        da.from_array(np.full(ds.points.shape, None), chunks=chunks),
+                        ["space"],
+                        da.from_array(np.full(ds.space.shape, None), chunks=chunks),
                     )
                 }
             )
@@ -232,8 +248,9 @@ class SpaceTimeMatrix:
         return ds
 
     def _in_polygon(self, polygon, xlabel="lon", ylabel="lat"):
-        """
-        Test if points of a STM is inside a given (multi-polygon) and return result as a boolean Dask array.
+        """Test if a space entry of a STM is inside a given (multi-polygon).
+
+        Return result as a boolean Dask array.
 
         Parameters
         ----------
@@ -247,28 +264,27 @@ class SpaceTimeMatrix:
         Returns
         -------
         Dask.array
-            A boolean Dask array. True where points are inside the (multi-)polygon.
+            A boolean Dask array. True where a space entry is inside the (multi-)polygon.
         """
-
         # Check if coords exists
         _ = _validate_coords(self._obj, xlabel, ylabel)
 
         # Get polygon type and the first row
         if isinstance(polygon, gpd.GeoDataFrame):
             type_polygon = "GeoDataFrame"
-        elif isinstance(polygon, Path) or isinstance(polygon, str):
+        elif isinstance(polygon, Path | str):
             type_polygon = "File"
         else:
             raise NotImplementedError("Cannot recognize the input polygon.")
 
         # Enrich all fields
         ds = self._obj
-        chunks = (ds.chunksizes["points"][0],)  # Assign an empty fields to ds
+        chunks = (ds.chunksizes["space"][0],)  # Assign an empty fields to ds
         ds = ds.assign(
             {
                 "mask": (
-                    ["points"],
-                    da.from_array(np.full(ds.points.shape, False), chunks=chunks),
+                    ["space"],
+                    da.from_array(np.full(ds.space.shape, False), chunks=chunks),
                 )
             }
         )
@@ -282,11 +298,73 @@ class SpaceTimeMatrix:
 
         return mask
 
+    def register_metadata(self, dict_meta: STMMetaData):
+        """Register metadata.
+
+        Parameters
+        ----------
+        dict_meta : STMMetaData
+            Metatdata dictionaries. The schema is pre-defined as annotation.
+
+        Returns
+        -------
+        xarray.Dataset
+            STM with registered metadata.
+        """
+        ds_updated = self._obj.assign_attrs(dict_meta)
+
+        return ds_updated
+
+    def register_datatype(self, keys: str | Iterable, datatype: DataVarTypes):
+        """Register the specified data variables as an attribute.
+
+        Parameters
+        ----------
+        keys : Union[str, Iterable]
+            Keys of the data variables to register
+        datatype : str in DataVarTypes
+            String of the datatype. Choose from ["obsData", "auxData", "pntAttrib", "epochAttrib"].
+
+        Returns
+        -------
+        xarray.Dataset
+            STM with registered metadata.
+        """
+        ds_updated = self._obj
+
+        if isinstance(keys, str):
+            keys = [keys]
+        if _has_property(ds_updated, keys):
+            ds_updated = ds_updated.assign_attrs({datatype: keys})
+        else:
+            raise ValueError("Not all given keys are data_vars of the STM.")
+        return ds_updated
+
+    @property
+    def num_points(self):
+        """Get number of space entry of the stm.
+
+        Returns
+        -------
+        int
+            Number of space entry.
+        """
+        return self._obj.dims["space"]
+
+    @property
+    def num_epochs(self):
+        """Get number of epochs of the stm.
+
+        Returns
+        -------
+        int
+            Number of epochs.
+        """
+        return self._obj.dims["time"]
+
 
 def _in_polygon_block(mask, polygon, xlabel, ylabel, type_polygon):
-    """
-    Block-wise function for "_in_polygon".
-    """
+    """Block-wise function for "_in_polygon"."""
     match_list, _ = _ml_str_query(mask[xlabel], mask[ylabel], polygon, type_polygon)
     intmid = np.unique(match_list[:, 1])  # incase overlapping polygons
     mask.data[intmid] = True
@@ -295,10 +373,7 @@ def _in_polygon_block(mask, polygon, xlabel, ylabel, type_polygon):
 
 
 def _enrich_from_polygon_block(ds, polygon, fields, xlabel, ylabel, type_polygon):
-    """
-    Block-wise function for "enrich_from_polygon".
-    """
-
+    """Block-wise function for "enrich_from_polygon"."""
     # Get the match list
     match_list, polygon = _ml_str_query(ds[xlabel], ds[ylabel], polygon, type_polygon)
 
@@ -316,15 +391,16 @@ def _enrich_from_polygon_block(ds, polygon, fields, xlabel, ylabel, type_polygon
 
 
 def _ml_str_query(xx, yy, polygon, type_polygon):
-    """
-    Test if a set of points is inside a (multi-)polygon using Sort-Tile-Recursive (STR) query, Get the match list.
+    """Test if a set of space entries is inside a (multi-)polygon.
+
+    Sort-Tile-Recursive (STR) query is used, return the match list.
 
     Parameters
     ----------
     xx : array_like
-        Vector array of the x coordinates of the points
+        Vector array of the x coordinates
     yy : array_like
-        Vector array of the y coordinates of the points
+        Vector array of the y coordinates
     polygon : geopandas.GeoDataFrame, str, or pathlib.Path
         Polygon or multi-polygon for query
     type_polygon : str
@@ -333,9 +409,10 @@ def _ml_str_query(xx, yy, polygon, type_polygon):
     Returns
     -------
     array_like
-        An array with two columns. The first column is the positional index into the list of polygons being used to query the tree. The second column is the positional index into the list of points for which the tree was constructed.
+        An array with two columns. The first column is the positional index into the list of
+        polygons being used to query the tree. The second column is the positional index into
+        the list of space entries for which the tree was constructed.
     """
-
     # Crop the polygon to the bounding box of the block
     xmin, ymin, xmax, ymax = [
         xx.data.min(),
@@ -349,50 +426,37 @@ def _ml_str_query(xx, yy, polygon, type_polygon):
         case "File":
             polygon = gpd.read_file(polygon, bbox=(xmin, ymin, xmax, ymax))
 
-    # Build STR tree for points
-    pnttree = STRtree(gpd.GeoSeries(map(Point, zip(xx.data, yy.data))))
+    # Build STR tree
+    pnttree = STRtree(gpd.GeoSeries(map(Point, zip(xx.data, yy.data, strict=True))))
 
     match_list = pnttree.query(polygon.geometry, predicate="contains").T
 
     return match_list, polygon
 
 
-def check_mult_relops(string):
+def _check_mult_relops(string):
     relops = ["<", ">"]
     for i in relops:
         if i in string:
-            raise Exception("Multiple relational operators found! Please check input")
+            raise ValueError("Multiple relational operators found! Please check input")
 
 
 def _check_threshold_kwargs(**kwargs):
     req_kwargs = ["var", "threshold"]
     for i in req_kwargs:
         if i not in kwargs:
-            raise Exception("Missing expected keyword argument: %s" % i)
+            raise ValueError(f"Missing expected keyword argument: {i}")
 
 
 def _check_polygon_kwargs(**kwargs):
     req_kwargs = ["polygon"]
     for i in req_kwargs:
         if i not in kwargs:
-            raise Exception("Missing expected keyword argument: %s" % i)
-
-
-def check_density_kwargs(**kwargs):
-    req_kwargs = ["x", "y", "dx", "dy"]
-    for i in req_kwargs:
-        if i not in kwargs:
-            raise Exception("Missing expected keyword argument: %s" % i)
-        if i in ["dx", "dy"]:
-            if not isinstance(kwargs[i], float):
-                raise Exception(
-                    "Keyword argument %s should be an floating point number" % i
-                )
+            raise ValueError(f"Missing expected keyword argument: {i}")
 
 
 def _validate_coords(ds, xlabel, ylabel):
-    """
-    Check if dataset has coordinates xlabel and ylabel
+    """Check if dataset has coordinates xlabel and ylabel.
 
     Parameters
     ----------
@@ -406,24 +470,24 @@ def _validate_coords(ds, xlabel, ylabel):
     Returns
     -------
     int
-        If xlabel and ylabel are in the coordinates of ds, return 1. If the they are in the data variables, return 2 and raise a warning
+        If xlabel and ylabel are in the coordinates of ds, return 1.
+        If the they are in the data variables, return 2 and raise a warning
 
     Raises
     ------
     ValueError
         If xlabel or ylabel neither exists in coordinates, raise ValueError
     """
-
     for clabel in [xlabel, ylabel]:
         if clabel not in ds.coords.keys():
             if clabel in ds.data_vars.keys():
                 logger.warning(
-                    '"{}"was not found in coordinates, but in data variables. '
+                    f'"{clabel}"was not found in coordinates, but in data variables. '
                     "We will proceed with the data variable. "
-                    'Please consider registering "{}" in the coordinates using '
-                    '"xarray.Dataset.assign".'.format(clabel, clabel)
+                    f'Please consider registering "{clabel}" in the coordinates using '
+                    '"xarray.Dataset.assign".'
                 )
                 return 2
             else:
-                raise ValueError('Coordinate label "{}" was not found.'.format(clabel))
+                raise ValueError(f'Coordinate label "{clabel}" was not found.')
     return 1

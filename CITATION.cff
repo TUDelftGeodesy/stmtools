@@ -1,0 +1,41 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: stmtools
+abstract: "STMTools is an open-source Xarray extension for Space-Time Matrix."
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Ou
+    family-names: Ku
+    email: o.ku@esciencecenter.nl
+    affiliation: Netherlands eScience Center
+    orcid: 'https://orcid.org/0000-0002-5373-5209'
+  - given-names: Fakhereh (Sarah)
+    family-names: Alidoost
+  - given-names: Pranav
+    family-names: Chandramouli
+  - given-names: Meiert Willem
+    family-names: Grootes
+  - given-names: Thijs
+    family-names: van Lankveld
+  - given-names: Francesco 
+    family-names: Nattino
+  - given-names: Freek
+    family-names: van Leijen
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.7717084
+    description: Zenodo
+repository-code: 'https://github.com/MotionbyLearning/stmtools'
+keywords:
+  - earth-observation
+  - radar
+  - insar
+  - psi
+  - space-time matrix
+  - distributed computation 
+license: Apache-2.0
