@@ -22,7 +22,7 @@ When `soil_map.gpkg` is small, loading it as an `GeoDataFrame` is faster:
 import geopandas as gpd
 polygon = gpd.read_file('soil_map.gpkg')
 fields_to_query = ['soil_type', 'type_code']
-stmat_enriched = stmat.stm.enrich_from_polygon(path_polygon, fields_to_query)
+stmat_enriched = stmat.stm.enrich_from_polygon(polygon, fields_to_query)
 ```
 
 ## Subset an STM
@@ -36,6 +36,14 @@ For example, select entries with `pnt_enscoh` higher than 0.7:
 ```python
 stmat_subset = stmat.stm.subset(method="threshold", var="pnt_enscoh", threshold='>0.7')
 ```
+
+This is equivelent to Xarray filtering:
+
+```python
+mask = stmat["pnt_enscoh"] > 0.7
+mask = mask.compute()
+stmat_subset = stmat.where(mask, drop=True)
+``` 
 
 ### By polygon
 
