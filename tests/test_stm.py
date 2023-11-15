@@ -108,44 +108,148 @@ def multi_polygon():
 
 @pytest.fixture
 def stmat_xy():
-    npoints = 16
     return xr.Dataset(
         coords=dict(
-            azimuth=(["space"], da.from_array(np.array([0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3]))),
-            range=(["space"],   da.from_array(np.array([0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3])))
+            azimuth=(
+                ["space"],
+                da.from_array(np.array([0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3])),
+            ),
+            range=(
+                ["space"],
+                da.from_array(np.array([0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3])),
+            ),
         ),
     ).unify_chunks()
 
 
 @pytest.fixture
 def stmat_morton():
-    npoints = 16
     return xr.Dataset(
         coords=dict(
-            azimuth=(["space"], da.from_array(np.array([0, 1, 0, 1, 2, 3, 2, 3, 0, 1, 0, 1, 2, 3, 2, 3]))),
-            range=(["space"],   da.from_array(np.array([0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 3, 3])))
+            azimuth=(
+                ["space"],
+                da.from_array(np.array([0, 1, 0, 1, 2, 3, 2, 3, 0, 1, 0, 1, 2, 3, 2, 3])),
+            ),
+            range=(
+                ["space"],
+                da.from_array(np.array([0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 3, 3])),
+            ),
         ),
     ).unify_chunks()
 
 
 @pytest.fixture
 def stmat_lonlat():
-    npoints = 16
     return xr.Dataset(
         coords=dict(
-            azimuth=(["space"], da.from_array(np.array([0.00, 0.07, 0.14, 0.21, 0.00, 0.07, 0.14, 0.21, 0.00, 0.07, 0.14, 0.21, 0.00, 0.07, 0.14, 0.21]))),
-            range=(["space"],   da.from_array(np.array([0.00, 0.00, 0.00, 0.00, 0.06, 0.06, 0.06, 0.06, 0.12, 0.12, 0.12, 0.12, 0.18, 0.18, 0.18, 0.18])))
+            azimuth=(
+                ["space"],
+                da.from_array(
+                    np.array(
+                        [
+                            0.00,
+                            0.07,
+                            0.14,
+                            0.21,
+                            0.00,
+                            0.07,
+                            0.14,
+                            0.21,
+                            0.00,
+                            0.07,
+                            0.14,
+                            0.21,
+                            0.00,
+                            0.07,
+                            0.14,
+                            0.21,
+                        ]
+                    )
+                ),
+            ),
+            range=(
+                ["space"],
+                da.from_array(
+                    np.array(
+                        [
+                            0.00,
+                            0.00,
+                            0.00,
+                            0.00,
+                            0.06,
+                            0.06,
+                            0.06,
+                            0.06,
+                            0.12,
+                            0.12,
+                            0.12,
+                            0.12,
+                            0.18,
+                            0.18,
+                            0.18,
+                            0.18,
+                        ]
+                    )
+                ),
+            ),
         ),
     ).unify_chunks()
 
 
 @pytest.fixture
 def stmat_lonlat_morton():
-    npoints = 16
     return xr.Dataset(
         coords=dict(
-            azimuth=(["space"], da.from_array(np.array([0.00, 0.07, 0.00, 0.07, 0.14, 0.21, 0.14, 0.21, 0.00, 0.07, 0.00, 0.07, 0.14, 0.21, 0.14, 0.21]))),
-            range=(["space"],   da.from_array(np.array([0.00, 0.00, 0.06, 0.06, 0.00, 0.00, 0.06, 0.06, 0.12, 0.12, 0.18, 0.18, 0.12, 0.12, 0.18, 0.18])))
+            azimuth=(
+                ["space"],
+                da.from_array(
+                    np.array(
+                        [
+                            0.00,
+                            0.07,
+                            0.00,
+                            0.07,
+                            0.14,
+                            0.21,
+                            0.14,
+                            0.21,
+                            0.00,
+                            0.07,
+                            0.00,
+                            0.07,
+                            0.14,
+                            0.21,
+                            0.14,
+                            0.21,
+                        ]
+                    )
+                ),
+            ),
+            range=(
+                ["space"],
+                da.from_array(
+                    np.array(
+                        [
+                            0.00,
+                            0.00,
+                            0.06,
+                            0.06,
+                            0.00,
+                            0.00,
+                            0.06,
+                            0.06,
+                            0.12,
+                            0.12,
+                            0.18,
+                            0.18,
+                            0.12,
+                            0.12,
+                            0.18,
+                            0.18,
+                        ]
+                    )
+                ),
+            ),
         ),
     ).unify_chunks()
 
@@ -193,12 +297,12 @@ class TestRegulateDims:
             ),
         )
 
-        assert _validate_coords(stmat_coords, 'x', 'y') == 1
-        assert _validate_coords(stmat_coords, 'x_coor', 'y_coor') == 2
-        assert _validate_coords(stmat_coords, 'x', 'y_coor') == 2
+        assert _validate_coords(stmat_coords, "x", "y") == 1
+        assert _validate_coords(stmat_coords, "x_coor", "y_coor") == 2
+        assert _validate_coords(stmat_coords, "x", "y_coor") == 2
 
         with pytest.raises(ValueError):
-            _validate_coords(stmat_coords, 'x_non', 'y_non')
+            _validate_coords(stmat_coords, "x_non", "y_non")
 
 
 class TestAttributes:
@@ -215,6 +319,7 @@ class TestAttributes:
     def test_register_datatype_nonexists(self, stmat):
         with pytest.raises(ValueError):
             stmat.stm.register_datatype("non_exist", "pntAttrib")
+
 
 class TestSubset:
     def test_check_missing_dimension(self, stmat_only_point):

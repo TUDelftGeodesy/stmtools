@@ -340,7 +340,7 @@ class SpaceTimeMatrix:
         else:
             raise ValueError("Not all given keys are data_vars of the STM.")
         return ds_updated
-    
+
     def get_order(self, xlabel="azimuth", ylabel="range", xscale=1.0, yscale=1.0):
         """Compute an ordering on the points based on coordinates with xlabel and ylabel.
 
@@ -364,10 +364,13 @@ class SpaceTimeMatrix:
         yscale : float
             Scaling multiplier to the y coordinates before truncating them to integer values.
         """
-
         meta_arr = np.array((), dtype=np.int64)
         order = da.apply_gufunc(
-            _compute_morton_code, "(),()->()", xscale*self._obj[xlabel], yscale*self._obj[ylabel], meta=meta_arr
+            _compute_morton_code,
+            "(),()->()",
+            xscale * self._obj[xlabel],
+            yscale * self._obj[ylabel],
+            meta=meta_arr,
         )
         self._obj = self._obj.assign({"order": (("space"), order)})
         return self._obj
@@ -393,7 +396,6 @@ class SpaceTimeMatrix:
         yscale : float
             Scaling multiplier to the y coordinates before truncating them to integer values.
         """
-
         self._obj = self.get_order(xlabel, ylabel, xscale, yscale)
         self._obj = self._obj.sortby(self._obj.order)
         return self._obj
@@ -550,6 +552,7 @@ def _validate_coords(ds, xlabel, ylabel):
                 raise ValueError(f'Coordinate label "{clabel}" was not found.')
     return 1
 
+
 def _compute_morton_code(xx, yy):
     """Compute Morton codes based on two coordinates.
 
@@ -567,7 +570,5 @@ def _compute_morton_code(xx, yy):
     array_like
         An array with Morton codes per coordinate pair.
     """
-    code = [
-        pm.interleave(int(xi), int(yi)) for xi, yi in zip(xx, yy)
-    ]
+    code = [pm.interleave(int(xi), int(yi)) for xi, yi in zip(xx, yy, strict=True)]
     return code
