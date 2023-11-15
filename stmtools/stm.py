@@ -368,8 +368,8 @@ class SpaceTimeMatrix:
         order = da.apply_gufunc(
             _compute_morton_code,
             "(),()->()",
-            xscale * self._obj[xlabel],
-            yscale * self._obj[ylabel],
+            xscale * self._obj[xlabel].data,
+            yscale * self._obj[ylabel].data,
             meta=meta_arr,
         )
         self._obj = self._obj.assign({"order": (("space"), order)})
