@@ -7,6 +7,7 @@ from pathlib import Path
 import dask.array as da
 import geopandas as gpd
 import numpy as np
+import pymorton as pm
 import xarray as xr
 from shapely.geometry import Point
 from shapely.strtree import STRtree
@@ -340,6 +341,65 @@ class SpaceTimeMatrix:
             raise ValueError("Not all given keys are data_vars of the STM.")
         return ds_updated
 
+    def get_order(self, xlabel="azimuth", ylabel="range", xscale=1.0, yscale=1.0):
+        """Compute an ordering on the points based on coordinates with xlabel and ylabel.
+
+        This order is stored in a (new) point attribute "order".
+
+        Note that this ordering is most intuitive for integer coordinates (e.g. pixel coordinates).
+        For float coordinates (e.g. lat-lon), the coordinates should be scaled to determine the
+        resolution of the ordering: only the whole-number part influences the order.
+        While coordinates could also be offset, this has limited effect on the relative order.
+
+        Parameters
+        ----------
+        self : SpaceTimeMatrix
+            space time matrix to order
+        xlabel : str
+            Name of x coordinates to order by
+        ylabel : str
+            Name of y coordinates to order by
+        xscale : float
+            Scaling multiplier to the x coordinates before truncating them to integer values.
+        yscale : float
+            Scaling multiplier to the y coordinates before truncating them to integer values.
+        """
+        meta_arr = np.array((), dtype=np.int64)
+        order = da.apply_gufunc(
+            _compute_morton_code,
+            "(),()->()",
+            xscale * self._obj[xlabel].data,
+            yscale * self._obj[ylabel].data,
+            meta=meta_arr,
+        )
+        self._obj = self._obj.assign({"order": (("space"), order)})
+        return self._obj
+
+    def reorder(self, xlabel="azimuth", ylabel="range", xscale=1.0, yscale=1.0):
+        """Compute and apply an ordering on the points based on coordinates with xlabel and ylabel.
+
+        Note that this ordering is most intuitive for integer coordinates (e.g. pixel coordinates).
+        For float coordinates (e.g. lat-lon), the coordinates should be scaled to determine the
+        resolution of the ordering: only the whole-number part influences the order.
+        While coordinates could also be offset, this has limited effect on the relative order.
+
+        Parameters
+        ----------
+        self : SpaceTimeMatrix
+            space time matrix to order
+        xlabel : str
+            Name of x coordinates to order by
+        ylabel : str
+            Name of y coordinates to order by
+        xscale : float
+            Scaling multiplier to the x coordinates before truncating them to integer values.
+        yscale : float
+            Scaling multiplier to the y coordinates before truncating them to integer values.
+        """
+        self._obj = self.get_order(xlabel, ylabel, xscale, yscale)
+        self._obj = self._obj.sortby(self._obj.order)
+        return self._obj
+
     @property
     def num_points(self):
         """Get number of space entry of the stm.
@@ -491,3 +551,24 @@ def _validate_coords(ds, xlabel, ylabel):
             else:
                 raise ValueError(f'Coordinate label "{clabel}" was not found.')
     return 1
+
+
+def _compute_morton_code(xx, yy):
+    """Compute Morton codes based on two coordinates.
+
+    The Morton codes are computed using pymorton interleave on integer values.
+
+    Parameters
+    ----------
+    xx : array_like
+        Vector array of the x coordinates
+    yy : array_like
+        Vector array of the y coordinates
+
+    Returns
+    -------
+    array_like
+        An array with Morton codes per coordinate pair.
+    """
+    code = [pm.interleave(int(xi), int(yi)) for xi, yi in zip(xx, yy, strict=True)]
+    return code

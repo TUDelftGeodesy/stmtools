@@ -106,6 +106,154 @@ def multi_polygon():
     return gpd.GeoDataFrame(data, crs="EPSG:4326")
 
 
+@pytest.fixture
+def stmat_xy():
+    return xr.Dataset(
+        coords=dict(
+            azimuth=(
+                ["space"],
+                da.from_array(np.array([0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3])),
+            ),
+            range=(
+                ["space"],
+                da.from_array(np.array([0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3])),
+            ),
+        ),
+    ).unify_chunks()
+
+
+@pytest.fixture
+def stmat_morton():
+    return xr.Dataset(
+        coords=dict(
+            azimuth=(
+                ["space"],
+                da.from_array(np.array([0, 1, 0, 1, 2, 3, 2, 3, 0, 1, 0, 1, 2, 3, 2, 3])),
+            ),
+            range=(
+                ["space"],
+                da.from_array(np.array([0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 3, 3])),
+            ),
+        ),
+    ).unify_chunks()
+
+
+@pytest.fixture
+def stmat_lonlat():
+    return xr.Dataset(
+        coords=dict(
+            azimuth=(
+                ["space"],
+                da.from_array(
+                    np.array(
+                        [
+                            0.00,
+                            0.07,
+                            0.14,
+                            0.21,
+                            0.00,
+                            0.07,
+                            0.14,
+                            0.21,
+                            0.00,
+                            0.07,
+                            0.14,
+                            0.21,
+                            0.00,
+                            0.07,
+                            0.14,
+                            0.21,
+                        ]
+                    )
+                ),
+            ),
+            range=(
+                ["space"],
+                da.from_array(
+                    np.array(
+                        [
+                            0.00,
+                            0.00,
+                            0.00,
+                            0.00,
+                            0.06,
+                            0.06,
+                            0.06,
+                            0.06,
+                            0.12,
+                            0.12,
+                            0.12,
+                            0.12,
+                            0.18,
+                            0.18,
+                            0.18,
+                            0.18,
+                        ]
+                    )
+                ),
+            ),
+        ),
+    ).unify_chunks()
+
+
+@pytest.fixture
+def stmat_lonlat_morton():
+    return xr.Dataset(
+        coords=dict(
+            azimuth=(
+                ["space"],
+                da.from_array(
+                    np.array(
+                        [
+                            0.00,
+                            0.07,
+                            0.00,
+                            0.07,
+                            0.14,
+                            0.21,
+                            0.14,
+                            0.21,
+                            0.00,
+                            0.07,
+                            0.00,
+                            0.07,
+                            0.14,
+                            0.21,
+                            0.14,
+                            0.21,
+                        ]
+                    )
+                ),
+            ),
+            range=(
+                ["space"],
+                da.from_array(
+                    np.array(
+                        [
+                            0.00,
+                            0.00,
+                            0.06,
+                            0.06,
+                            0.00,
+                            0.00,
+                            0.06,
+                            0.06,
+                            0.12,
+                            0.12,
+                            0.18,
+                            0.18,
+                            0.12,
+                            0.12,
+                            0.18,
+                            0.18,
+                        ]
+                    )
+                ),
+            ),
+        ),
+    ).unify_chunks()
+
+
 class TestRegulateDims:
     def test_time_dim_exists(self, stmat_only_point):
         stm_reg = stmat_only_point.stm.regulate_dims()
@@ -149,12 +297,12 @@ class TestRegulateDims:
             ),
         )
 
-        assert _validate_coords(stmat_coords, 'x', 'y') == 1
-        assert _validate_coords(stmat_coords, 'x_coor', 'y_coor') == 2
-        assert _validate_coords(stmat_coords, 'x', 'y_coor') == 2
+        assert _validate_coords(stmat_coords, "x", "y") == 1
+        assert _validate_coords(stmat_coords, "x_coor", "y_coor") == 2
+        assert _validate_coords(stmat_coords, "x", "y_coor") == 2
 
         with pytest.raises(ValueError):
-            _validate_coords(stmat_coords, 'x_non', 'y_non')
+            _validate_coords(stmat_coords, "x_non", "y_non")
 
 
 class TestAttributes:
@@ -171,6 +319,7 @@ class TestAttributes:
     def test_register_datatype_nonexists(self, stmat):
         with pytest.raises(ValueError):
             stmat.stm.register_datatype("non_exist", "pntAttrib")
+
 
 class TestSubset:
     def test_check_missing_dimension(self, stmat_only_point):
@@ -282,3 +431,32 @@ class TestEnrichment:
 
         with pytest.raises(ValueError):
             stmat = stmat.stm.enrich_from_polygon(multi_polygon, "non_exist_field")
+
+
+class TestOrderPoints:
+    def test_order_attr_exists(self, stmat_xy):
+        stmat = stmat_xy.stm.get_order(xlabel="azimuth", ylabel="range")
+        assert "order" in stmat.keys()
+        assert type(stmat.order) == xr.DataArray
+
+    def test_order(self, stmat_xy, stmat_morton):
+        stmat = stmat_xy.stm.get_order(xlabel="azimuth", ylabel="range")
+        stmat = stmat.sortby(stmat.order)
+
+        assert stmat.azimuth.equals(stmat_morton.azimuth)
+        assert stmat.range.equals(stmat_morton.range)
+
+    def test_reorder(self, stmat_xy, stmat_morton):
+        stmat = stmat_xy.stm.reorder(xlabel="azimuth", ylabel="range")
+
+        assert stmat.azimuth.equals(stmat_morton.azimuth)
+        assert stmat.range.equals(stmat_morton.range)
+
+    def test_reorder_lonlat(self, stmat_lonlat, stmat_lonlat_morton):
+        stmat_naive = stmat_lonlat.stm.reorder(xlabel="azimuth", ylabel="range")
+        stmat = stmat_lonlat.stm.reorder(xlabel="azimuth", ylabel="range", xscale=15, yscale=17)
+
+        assert not stmat_naive.azimuth.equals(stmat_lonlat_morton.azimuth)
+        assert not stmat_naive.range.equals(stmat_lonlat_morton.range)
+        assert stmat.azimuth.equals(stmat_lonlat_morton.azimuth)
+        assert stmat.range.equals(stmat_lonlat_morton.range)
