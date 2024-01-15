@@ -41,10 +41,10 @@ classifiers=[
 ]
 
 [project.urls]
-repository = "https://github.com/MotionbyLearning/stmtools"
+repository = "https://github.com/TUDelftGeodesy/stmtools"
 doi = "https://doi.org/10.5281/zenodo.7717112"
-documentation = "https://motionbylearning.github.io/stmtools/"
-changelog = "https://motionbylearning.github.io/stmtools/CHANGELOG/"
+documentation = "https://tudelftgeodesy.github.io/stmtools/"
+changelog = "https://tudelftgeodesy.github.io/stmtools/CHANGELOG/"
 
 [project.optional-dependencies]
 dev = [

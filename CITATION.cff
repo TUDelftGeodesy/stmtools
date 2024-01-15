@@ -30,7 +30,7 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.7717084
     description: Zenodo
-repository-code: 'https://github.com/MotionbyLearning/stmtools'
+repository-code: 'https://github.com/TUDelftGeodesy/stmtools'
 keywords:
   - earth-observation
   - radar
