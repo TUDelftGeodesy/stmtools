@@ -10,7 +10,7 @@ nav:
     - Initiate an STM: stm_init.md
     - Operations on STM: operations.md
   - Notebook page: notebooks/demo_stm.ipynb
-  - Conributing guide: CONTRIBUTING.md
+  - Contributing guide: CONTRIBUTING.md
   - Change Log: CHANGELOG.md
 
 
