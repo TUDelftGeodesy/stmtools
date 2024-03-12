@@ -8,7 +8,7 @@ version = "0.1.1"
 requires-python = ">=3.10"
 dependencies = [
     "dask[complete]",
-    "xarray",
+    "xarray[io]",
     "numpy",
     "rasterio",
     "geopandas",
@@ -16,6 +16,7 @@ dependencies = [
     "zarr",
     "distributed",
     "pymorton",
+    "scipy",  # required for `enrich_from_dataset` method
 ]
 description = "space-time matrix for PS-InSAR application"
 readme = "README.md"
