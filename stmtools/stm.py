@@ -400,6 +400,99 @@ class SpaceTimeMatrix:
         self._obj = self._obj.sortby(self._obj.order)
         return self._obj
 
+    def enrich_from_dataset(self, dataset: xr.Dataset | xr.DataArray, fields: str | Iterable, method="linear") -> xr.Dataset:
+        """Enrich the SpaceTimeMatrix from one or more fields of a dataset.
+
+        scipy is required. Each field will be assigned as a data variable to the
+        STM using interpolation in time and space.
+
+        Parameters
+        ----------
+        dataset :  xarray.Dataset | xarray.DataArray
+            Input data for enrichment
+        fields : str or list of str
+            Field name(s) in the dataset for enrichment
+        method : str, optional
+            Method of interpolation, by default "linear", see
+            https://docs.xarray.dev/en/stable/generated/xarray.Dataset.interp_like.html#xarray-dataset-interp-like
+
+        Returns
+        -------
+        xarray.Dataset
+            Enriched STM.
+        """
+        # Check if fields is a Iterable or a str
+        if isinstance(fields, str):
+            fields = [fields]
+        elif not isinstance(fields, Iterable):
+            raise ValueError("fields need to be a Iterable or a string")
+
+        # if dataset is a DataArray, convert it to a Dataset
+        if isinstance(dataset, xr.DataArray):
+            dataset = dataset.to_dataset()
+
+        ds = self._obj
+
+        # TODO: add utility to preprocess the dataset
+        # check if dataset has space and time dimensions
+        if "space" not in dataset.dims:
+            raise ValueError('Missing dimension: "space" in the input dataset.')
+        if "time" not in dataset.dims:
+            raise ValueError('Missing dimension: "time" in the input dataset.')
+
+        # check if dtype of time is the same
+        if dataset.time.dtype != ds.time.dtype:
+            raise ValueError("The input dataset and the STM have different time dtype.")
+
+        # check if dataset and ds has the same space and time shapes, required
+        # for interpolation
+        if dataset.space.shape != ds.space.shape:
+            raise ValueError("The input dataset and the STM have different space shapes.")
+        if dataset.time.shape != ds.time.shape:
+            raise ValueError("The input dataset and the STM have different time shapes.")
+
+        # check if the keys of dataset coordinates are the same as the STM
+        for key in ds.coords.keys():
+            if key not in dataset.coords.keys():
+                raise ValueError(f'Coordinate label "{key}" was not found in the input dataset.')
+
+        chunks = (ds.chunksizes["space"][0], ds.chunksizes["time"][0])
+        for field in fields:
+
+            # check if dataset has the fields
+            if field not in dataset.data_vars.keys():
+                raise ValueError(f'Field "{field}" not found in the the input dataset')
+
+            # check STM has the filed already
+            if field in ds.data_vars.keys():
+                logger.warning(
+                    f'"{field}" was found in the data variables of the STM. '
+                    f'"We will proceed with the data variable from the input dataset as "{field}_other".'
+                )
+                field = f"{field}_other"
+
+            ds = ds.assign(
+                {
+                    field: (
+                        ["space", "time"],
+                        da.from_array(np.full(ds.space.shape + ds.time.shape, None), chunks=chunks),
+                    )
+                }
+            )
+        # spatial interpolation and map_blocks does not work if coordinates are not same
+        # ds = xr.map_blocks(
+        #     _enrich_from_dataset_block,
+        #     ds,
+        #     args=(dataset, fields, method),
+        #     template=ds,
+        # )
+        _ds = ds.copy(deep=True)
+        for field in fields:
+            _ds[field].data = dataset[field].interp_like(ds, method=method)
+        ds = _ds
+
+        return ds
+
     @property
     def num_points(self):
         """Get number of space entry of the stm.
@@ -572,3 +665,11 @@ def _compute_morton_code(xx, yy):
     """
     code = [pm.interleave(int(xi), int(yi)) for xi, yi in zip(xx, yy, strict=True)]
     return code
+
+
+def _enrich_from_dataset_block(ds, dataset, fields, method):
+    """Block-wise function for "enrich_from_dataset"."""
+    _ds = ds.copy(deep=True)
+    for field in fields:
+        _ds[field].data = dataset[field].interp_like(ds, method=method)
+    return _ds
