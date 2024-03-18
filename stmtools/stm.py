@@ -11,7 +11,7 @@ import pymorton as pm
 import xarray as xr
 from shapely.geometry import Point
 from shapely.strtree import STRtree
-from scipy.spatial import cKDTree
+from scipy.spatial import KDTree
 
 from stmtools.metadata import DataVarTypes, STMMetaData
 from stmtools.utils import _has_property
@@ -735,14 +735,14 @@ def _enrich_from_points_block(ds, datapoints, fields):
     # Create a cKDTree object for the spatial coordinates of datapoints
     # Find the indices of the nearest points in space in datapoints for each point in _ds
     # it uses Euclidean distance
-    tree = cKDTree(dataset_points_coords)
+    tree = KDTree(dataset_points_coords)
     _, indices_space = tree.query(ds_coords)
 
     # Create a cKDTree object for the temporal coordinates of datapoints
     # Find the indices of the nearest points in time in datapoints for each point in _ds
     datapoints_times = datapoints.time.values.reshape(-1, 1)
     ds_times = _ds.time.values.reshape(-1, 1)
-    tree = cKDTree(datapoints_times)
+    tree = KDTree(datapoints_times)
     _, indices_time = tree.query(ds_times)
 
     selections = datapoints.isel(time=indices_time, space=indices_space)
