@@ -696,10 +696,9 @@ def _enrich_from_raster_block(ds, dataraster, fields, method):
     interpolated = dataraster.interp(ds.coords, method=method)
 
     # Assign these values to the corresponding points in ds
-    _ds = ds.copy(deep=True)
     for field in fields:
-        _ds[field] = xr.DataArray(interpolated[field].data, dims=ds.dims, coords=ds.coords)
-    return _ds
+        ds[field] = xr.DataArray(interpolated[field].data, dims=ds.dims, coords=ds.coords)
+    return ds
 
 
 def _enrich_from_points_block(ds, datapoints, fields):
@@ -720,18 +719,17 @@ def _enrich_from_points_block(ds, datapoints, fields):
     -------
     xarray.Dataset
     """
-    _ds = ds.copy(deep=True)
 
     # add spatial coordinates to dims
     datapoints_coords = list(datapoints.coords.keys())
     datapoints = datapoints.set_index(space=datapoints_coords[:-1])  # assuming the last coordinate is time
     datapoints = datapoints.unstack("space")  # after this, the order of coordinates changes, so we use transpose later
 
-    indexers = {coord: _ds[coord] for coord in datapoints_coords}
+    indexers = {coord: ds[coord] for coord in datapoints_coords}
     selections = datapoints.sel(indexers, method="nearest")
 
-    # Assign these values to the corresponding points in _ds
+    # Assign these values to the corresponding points in ds
     for field in fields:
-        _ds[field] = xr.DataArray(selections[field].data.transpose(), dims=ds.dims, coords=ds.coords)
+        ds[field] = xr.DataArray(selections[field].data.transpose(), dims=ds.dims, coords=ds.coords)
 
-    return _ds
+    return ds
