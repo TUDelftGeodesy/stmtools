@@ -534,8 +534,13 @@ class TestEnrichmentFromPointDataset:
         # check if the nearest method is correct
         assert stmat_enriched.temperature[0, 0] == meteo_points.temperature[0, 1]
 
+        # check dimensions of stmat_enriched are the same as stmat
+        assert stmat_enriched.dims == stmat.dims
+
         # check if coordinates are correct
         assert stmat_enriched.lon.equals(stmat.lon)
+        assert stmat_enriched.lat.equals(stmat.lat)
+        assert stmat_enriched.time.equals(stmat.time)
 
     def test_enrich_from_dataset_multi_filed(self, stmat, meteo_points):
         stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, ["temperature", "humidity"])
@@ -594,6 +599,12 @@ class TestEnrichmentFromPointDataset:
         # check if the linear interpolation is correct
         assert stmat_enriched.temperature[0, 0] == meteo_points.temperature[0, 1]
 
+    def test_all_operations_lazy(self, stmat, meteo_points):
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
+        assert stmat_enriched.temperature.data.dask is not None
+        assert stmat_enriched.lon.data.dask is not None
+        assert stmat_enriched.lat.data.dask is not None
+        # dont check time because it is not a dask array
 
 class TestEnrichmentFromRasterDataset:
     def test_enrich_from_dataset_one_filed(self, stmat, meteo_raster):
@@ -603,8 +614,13 @@ class TestEnrichmentFromRasterDataset:
         # check if the nearest method is correct
         assert stmat_enriched.temperature[0, 0] == meteo_raster.temperature[0, 0, 1]
 
+        # check dimensions of stmat_enriched are the same as stmat
+        assert stmat_enriched.dims == stmat.dims
+
         # check if coordinates are correct
         assert stmat_enriched.lon.equals(stmat.lon)
+        assert stmat_enriched.lat.equals(stmat.lat)
+        assert stmat_enriched.time.equals(stmat.time)
 
     def test_enrich_from_dataset_multi_filed(self, stmat, meteo_raster):
         stmat_enriched = stmat.stm.enrich_from_dataset(meteo_raster, ["temperature", "humidity"])
@@ -662,3 +678,10 @@ class TestEnrichmentFromRasterDataset:
 
         # check if the linear interpolation is correct
         assert stmat_enriched.temperature[0, 0] == meteo_raster.temperature[0, 0, 1]
+
+    def test_all_operations_lazy(self, stmat, meteo_raster):
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_raster, "temperature")
+        assert stmat_enriched.temperature.data.dask is not None
+        assert stmat_enriched.lon.data.dask is not None
+        assert stmat_enriched.lat.data.dask is not None
+        # dont check time because it is not a dask array
