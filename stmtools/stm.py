@@ -456,6 +456,8 @@ class SpaceTimeMatrix:
             raise ValueError(
                 "The input dataset is not a point or raster dataset."
                 "The dataset should have either 'space' or 'lat/y' and 'lon/x' dimensions." # give help on renaming
+                "Consider renaming using "
+                "https://docs.xarray.dev/en/latest/generated/xarray.Dataset.rename.html#xarray-dataset-rename"
                              )
 
         # check if dataset has time dimensions
