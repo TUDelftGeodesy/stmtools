@@ -1,5 +1,6 @@
-import xarray as xr
 from collections.abc import Iterable
+
+import xarray as xr
 
 
 def _has_property(ds, keys: str | Iterable):
@@ -27,6 +28,7 @@ def crop(ds, other, buffer):
     -------
     xarray.Dataset
         Cropped dataset.
+
     """
     if isinstance(ds, xr.DataArray):
         ds = ds.to_dataset()
@@ -48,7 +50,11 @@ def crop(ds, other, buffer):
     indexer = {}
     for dim in other.dims:
         if dim not in other.coords.keys():
-            indexer = {dim: [coord for coord in other.coords.keys() if dim in other.coords[coord].dims]}
+            indexer = {
+                dim: [
+                    coord for coord in other.coords.keys() if dim in other.coords[coord].dims
+                    ]
+                }
             other = other.set_index(indexer)
             other = other.unstack(indexer)
 
