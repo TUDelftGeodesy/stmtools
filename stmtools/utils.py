@@ -42,18 +42,30 @@ def crop(ds, other, buffer):
         if coord not in other.coords.keys():
             raise ValueError(f"coordinate '{coord}' not found in other.")
 
-    other = unstack(other)
+    original_dims_order = other.dims
+
+    # for dims that are not in coords, unstack the data
+    indexer = {}
+    for dim in other.dims:
+        if dim not in other.coords.keys():
+            indexer = {dim: [coord for coord in other.coords.keys() if dim in other.coords[coord].dims]}
+            other = other.set_index(indexer)
+            other = other.unstack(indexer)
+
+    # do the slicing
     for coord in buffer.keys():
         coord_min = ds[coord].min() - buffer[coord]
         coord_max = ds[coord].max() + buffer[coord]
-        other = other.sel({coord: slice(coord_min, coord_max)})
+        if coord in other.dims:
+            other = other.sel({coord: slice(coord_min, coord_max)})
+
+    # stack back
+    for dim, coords in indexer.items():
+        for coord in coords:
+            coord_value = xr.DataArray(other.coords[coord].values, dims=dim)
+            other = other.sel({coord: coord_value})
+
+    # transpose the dimensions back to the original order
+    other = other.transpose(*original_dims_order)
+
     return other
-
-
-def unstack(ds):
-    for dim in ds.dims:
-        if dim not in ds.coords:
-            indexer = {dim: [coord for coord in ds.coords if dim in ds[coord].dims]}
-            ds = ds.set_index(indexer)
-            ds = ds.unstack(dim)
-    return ds

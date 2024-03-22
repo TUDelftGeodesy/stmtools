@@ -44,7 +44,6 @@ def meteo_points():
     ).unify_chunks()
 
 
-
 @pytest.fixture
 def meteo_raster():
     n_times = 20
@@ -97,15 +96,19 @@ def stmat():
 
 class TestCrop:
     def test_crop_points(self, stmat, meteo_points):
-        buffer = {"lon": 1, "lat": 1, "time": 1}
+        buffer = {"lon": 1, "lat": 1, "time": pd.Timedelta("1D")}
         cropped = utils.crop(stmat, meteo_points, buffer)
         # check min and max values of coordinates
         assert cropped.lon.min() == 0
         assert cropped.lon.max() == 10
         assert cropped.lat.min() == 0
         assert cropped.lat.max() == 10
-        assert cropped.time.min() == pd.Timestamp("2021-01-02")
-        assert cropped.time.max() == pd.Timestamp("2021-01-06")
+        assert cropped.time.min() == pd.Timestamp("2021-01-01")
+        assert cropped.time.max() == pd.Timestamp("2021-01-07")
+        assert tuple(cropped.temperature.dims) == ("space", "time")
+        assert "lon" in cropped.coords
+        assert "lat" in cropped.coords
+        assert "time" in cropped.coords
 
     def test_crop_raster(self, stmat, meteo_raster):
         buffer = {"lon": 1, "lat": 1, "time": 1}
@@ -117,6 +120,13 @@ class TestCrop:
         assert cropped.lat.max() == 10
         assert cropped.time.min() == pd.Timestamp("2021-01-02")
         assert cropped.time.max() == pd.Timestamp("2021-01-06")
+        assert tuple(cropped.dims) == ("lon", "lat", "time")
+        assert "lon" in cropped.coords
+        assert "lat" in cropped.coords
+        assert "time" in cropped.coords
+        assert "x" in cropped.coords
+        assert "y" in cropped.coords
+
 
     def test_all_operations_lazy(self, stmat, meteo_raster):
         buffer = {"lon": 1, "lat": 1, "time": 1}
