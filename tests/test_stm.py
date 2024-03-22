@@ -9,6 +9,7 @@ import pandas as pd
 from shapely import geometry
 
 from stmtools.stm import _validate_coords
+from stmtools.utils import crop
 
 path_multi_polygon = Path(__file__).parent / "./data/multi_polygon.gpkg"
 
@@ -255,15 +256,18 @@ def stmat_lonlat_morton():
     ).unify_chunks()
 
 @pytest.fixture
+
 def meteo_points():
-    lon_values = np.array([0.5, 1.5, 2.5, 3.5, 4.5])
-    lat_values = np.array([0.25, 1.25, 2.25, 3.25, 4.25])
-    time_values = pd.date_range(start='2021-01-01', periods=6)
+    n_times = 20
+    n_locations = 50
+    lon_values = np.arange(0, n_locations/2, 0.5)
+    lat_values = np.arange(0, n_locations/2, 0.5)
+    time_values = pd.date_range(start='2021-01-01', periods=n_times)
 
     return xr.Dataset(
         data_vars=dict(
-            temperature=(["space", "time"], da.arange(5 * 6).reshape((5, 6))),
-            humidity=(["space", "time"], da.arange(5 * 6).reshape((5, 6))),
+            temperature=(["space", "time"], da.arange(n_locations * n_times).reshape((n_locations, n_times))),
+            humidity=(["space", "time"], da.arange(n_locations * n_times).reshape((n_locations, n_times))),
         ),
         coords=dict(
             lon=(["space"], lon_values),
@@ -274,19 +278,25 @@ def meteo_points():
 
 @pytest.fixture
 def meteo_raster():
-    # create a raster with 5x5 grid
-    lon_values = np.array([0, 1, 2, 3, 4])
-    lat_values = np.array([0, 1, 2, 3, 4])
-    time_values = pd.date_range(start='2021-01-01', periods=6)
+    n_times = 20
+    n_locations = 50
+    lon_values = np.arange(n_locations)
+    lat_values = np.arange(n_locations)
+    time_values = pd.date_range(start='2021-01-01', periods=n_times)
+    # add x and y values
+    x_values = np.arange(n_locations)
+    y_values = np.arange(n_locations)
 
     return xr.Dataset(
         data_vars=dict(
-            temperature=(["lon", "lat", "time"], da.arange(5 * 5 * 6).reshape((5, 5, 6))),
-            humidity=(["lon", "lat", "time"], da.arange(5 * 5 * 6).reshape((5, 5, 6))),
+            temperature=(["lon", "lat", "time"], da.arange(n_locations * n_locations * n_times).reshape((n_locations, n_locations, n_times))),
+            humidity=(["lon", "lat", "time"], da.arange(n_locations * n_locations * n_times).reshape((n_locations, n_locations, n_times))),
         ),
         coords=dict(
             lon=(["lon"], lon_values),
             lat=(["lat"], lat_values),
+            x=(["lon"], x_values),
+            y=(["lat"], y_values),
             time=(["time"], time_values),
         ),
     ).unify_chunks()
@@ -606,6 +616,14 @@ class TestEnrichmentFromPointDataset:
         assert stmat_enriched.lat.data.dask is not None
         # dont check time because it is not a dask array
 
+    def test_enrich_from_point_cropped(self, stmat, meteo_points):
+        buffer = {"lon": 1, "lat": 1, "time": pd.Timedelta("1D")}
+        print(stmat.lat.values)
+        meteo_points_cropped = crop(stmat, meteo_points, buffer)
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points_cropped, "temperature")
+        assert stmat_enriched.temperature[0, 0] == meteo_points_cropped.temperature[0, 1]
+
+
 class TestEnrichmentFromRasterDataset:
     def test_enrich_from_dataset_one_filed(self, stmat, meteo_raster):
         stmat_enriched = stmat.stm.enrich_from_dataset(meteo_raster, "temperature")
@@ -685,3 +703,9 @@ class TestEnrichmentFromRasterDataset:
         assert stmat_enriched.lon.data.dask is not None
         assert stmat_enriched.lat.data.dask is not None
         # dont check time because it is not a dask array
+
+    def test_enrich_from_raste_cropped(self, stmat, meteo_raster):
+        buffer = {"lon": 1, "lat": 1, "time": pd.Timedelta("1D")}
+        meteo_raster_cropped = crop(stmat, meteo_raster, buffer)
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_raster_cropped, "temperature")
+        assert stmat_enriched.temperature[0, 0] == meteo_raster_cropped.temperature[0, 0, 1]

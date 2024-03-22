@@ -12,6 +12,7 @@ import xarray as xr
 from shapely.geometry import Point
 from shapely.strtree import STRtree
 
+from stmtools import utils
 from stmtools.metadata import DataVarTypes, STMMetaData
 from stmtools.utils import _has_property
 
@@ -403,7 +404,8 @@ class SpaceTimeMatrix:
     def enrich_from_dataset(self,
                             dataset: xr.Dataset | xr.DataArray,
                             fields: str | Iterable,
-                            method="nearest") -> xr.Dataset:
+                            method="nearest",
+                            ) -> xr.Dataset:
         """Enrich the SpaceTimeMatrix from one or more fields of a dataset.
 
         scipy is required. if dataset is raster, it uses
@@ -420,7 +422,6 @@ class SpaceTimeMatrix:
         method : str, optional
             Method of interpolation, by default "nearest", see
             https://docs.xarray.dev/en/stable/generated/xarray.Dataset.interp_like.html#xarray-dataset-interp-like
-
         Returns
         -------
         xarray.Dataset
@@ -454,7 +455,7 @@ class SpaceTimeMatrix:
         else:
             raise ValueError(
                 "The input dataset is not a point or raster dataset."
-                "The dataset should have either 'space' or 'lat/y' and 'lon/x' dimensions."
+                "The dataset should have either 'space' or 'lat/y' and 'lon/x' dimensions." # give help on renaming
                              )
 
         # check if dataset has time dimensions
@@ -476,25 +477,12 @@ class SpaceTimeMatrix:
             # check STM has the filed already
             if field in ds.data_vars.keys():
                 raise ValueError(f'Field "{field}" already exists in the STM.')
-
-        # if dataset is a dask collection, compute it first
+            # TODO: overwrite the field in the STM
 
         if approch == "raster":
             return _enrich_from_raster_block(ds, dataset, fields, method)
-            # return xr.map_blocks(
-            #     _enrich_from_raster_block,
-            #     ds,
-            #     args=(fields, method),
-            #     kwargs={"dataset": dataset}, #TODD: block still not working, refactor
-            # )
         elif approch == "point":
             return _enrich_from_points_block(ds, dataset, fields)
-            # return xr.map_blocks(
-            #     _enrich_from_points_block,
-            #     ds,
-            #     args=(fields),
-            #     kwargs={"dataset": dataset},
-            # )
 
     @property
     def num_points(self):
@@ -675,7 +663,7 @@ def _enrich_from_raster_block(ds, dataraster, fields, method):
 
     scipy is required. It uses xarray.Dataset.interp_like to interpolate the
     raster dataset to the coordinates of ds.
-    https://docs.xarray.dev/en/stable/generated/xarray.Dataset.interp_like.html#xarray-dataset-interp-like
+    https://docs.xarray.dev/en/stable/generated/xarray.Dataset.interp.html
 
     Parameters
     ----------
@@ -686,7 +674,7 @@ def _enrich_from_raster_block(ds, dataraster, fields, method):
     fields : str or list of str
         Field name(s) in the dataset for enrichment
     method : str, optional
-        Method of interpolation, by default "linear", see
+        Method of interpolation, by default "nearest", see
 
     Returns
     -------
@@ -719,13 +707,15 @@ def _enrich_from_points_block(ds, datapoints, fields):
     -------
     xarray.Dataset
     """
+    # unstak the dimensions
+    for dim in datapoints.dims:
+        if dim not in datapoints.coords:
+            indexer = {dim: [coord for coord in datapoints.coords if dim in datapoints[coord].dims]}
+            datapoints = datapoints.set_index(indexer)
+            datapoints = datapoints.unstack(dim)
 
-    # add spatial coordinates to dims
-    datapoints_coords = list(datapoints.coords.keys())
-    datapoints = datapoints.set_index(space=datapoints_coords[:-1])  # assuming the last coordinate is time
-    datapoints = datapoints.unstack("space")  # after this, the order of coordinates changes, so we use transpose later
-
-    indexers = {coord: ds[coord] for coord in datapoints_coords}
+    # do selection
+    indexers = {coord: ds[coord] for coord in list(datapoints.coords.keys())}
     selections = datapoints.sel(indexers, method="nearest")
 
     # Assign these values to the corresponding points in ds
