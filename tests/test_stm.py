@@ -3,9 +3,9 @@ from pathlib import Path
 import dask.array as da
 import geopandas as gpd
 import numpy as np
+import pandas as pd
 import pytest
 import xarray as xr
-import pandas as pd
 from shapely import geometry
 
 from stmtools.stm import _validate_coords
@@ -263,11 +263,12 @@ def meteo_points():
     lon_values = np.arange(0, n_locations/2, 0.5)
     lat_values = np.arange(0, n_locations/2, 0.5)
     time_values = pd.date_range(start='2021-01-01', periods=n_times)
+    data = da.arange(n_locations * n_times).reshape((n_locations, n_times))
 
     return xr.Dataset(
         data_vars=dict(
-            temperature=(["space", "time"], da.arange(n_locations * n_times).reshape((n_locations, n_times))),
-            humidity=(["space", "time"], da.arange(n_locations * n_times).reshape((n_locations, n_times))),
+            temperature=(["space", "time"], data),
+            humidity=(["space", "time"], data),
         ),
         coords=dict(
             lon=(["space"], lon_values),
@@ -287,10 +288,14 @@ def meteo_raster():
     x_values = np.arange(n_locations)
     y_values = np.arange(n_locations)
 
+    data = da.arange(n_locations * n_locations * n_times).reshape(
+        (n_locations, n_locations, n_times)
+        )
+
     return xr.Dataset(
         data_vars=dict(
-            temperature=(["lon", "lat", "time"], da.arange(n_locations * n_locations * n_times).reshape((n_locations, n_locations, n_times))),
-            humidity=(["lon", "lat", "time"], da.arange(n_locations * n_locations * n_times).reshape((n_locations, n_locations, n_times))),
+            temperature=(["lon", "lat", "time"], data),
+            humidity=(["lon", "lat", "time"], data),
         ),
         coords=dict(
             lon=(["lon"], lon_values),

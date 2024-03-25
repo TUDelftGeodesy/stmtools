@@ -1,7 +1,7 @@
-import pytest
 import dask.array as da
 import numpy as np
 import pandas as pd
+import pytest
 import xarray as xr
 
 from stmtools import utils
@@ -31,10 +31,11 @@ def meteo_points():
     lon_values = np.arange(n_locations)
     lat_values = np.arange(n_locations)
     time_values = pd.date_range(start='2021-01-01', periods=n_times)
+    data = da.arange(n_locations * n_times).reshape((n_locations, n_times))
 
     return xr.Dataset(
         data_vars=dict(
-            temperature=(["space", "time"], da.arange(n_locations * n_times).reshape((n_locations, n_times))),
+            temperature=(["space", "time"], data),
         ),
         coords=dict(
             lon=(["space"], lon_values),
@@ -54,10 +55,13 @@ def meteo_raster():
     # add x and y values
     x_values = np.arange(n_locations)
     y_values = np.arange(n_locations)
+    data = da.arange(n_locations * n_locations * n_times).reshape(
+        (n_locations, n_locations, n_times)
+        )
 
     return xr.Dataset(
         data_vars=dict(
-            temperature=(["lon", "lat", "time"], da.arange(n_locations * n_locations * n_times).reshape((n_locations, n_locations, n_times))),
+            temperature=(["lon", "lat", "time"], data),
         ),
         coords=dict(
             lon=(["lon"], lon_values),
