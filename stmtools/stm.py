@@ -38,6 +38,7 @@ class SpaceTimeMatrix:
         -------
         xarray.Dataset
             STM with assigned attributes.
+
         """
         self._obj = self._obj.assign_attrs(metadata)
         return self._obj
@@ -69,6 +70,7 @@ class SpaceTimeMatrix:
         -------
         xarray.Dataset
             Regulated STM.
+
         """
         if (
             (space_label is None)
@@ -128,6 +130,7 @@ class SpaceTimeMatrix:
         -------
         xarray.Dataset
             A subset of the original STM.
+
         """
         # Check if both "space" and "time" dimension exists
         for dim in ["space", "time"]:
@@ -203,6 +206,7 @@ class SpaceTimeMatrix:
         -------
         xarray.Dataset
             Enriched STM.
+
         """
         _ = _validate_coords(self._obj, xlabel, ylabel)
 
@@ -266,6 +270,7 @@ class SpaceTimeMatrix:
         -------
         Dask.array
             A boolean Dask array. True where a space entry is inside the (multi-)polygon.
+
         """
         # Check if coords exists
         _ = _validate_coords(self._obj, xlabel, ylabel)
@@ -311,6 +316,7 @@ class SpaceTimeMatrix:
         -------
         xarray.Dataset
             STM with registered metadata.
+
         """
         ds_updated = self._obj.assign_attrs(dict_meta)
 
@@ -330,6 +336,7 @@ class SpaceTimeMatrix:
         -------
         xarray.Dataset
             STM with registered metadata.
+
         """
         ds_updated = self._obj
 
@@ -363,6 +370,7 @@ class SpaceTimeMatrix:
             Scaling multiplier to the x coordinates before truncating them to integer values.
         yscale : float
             Scaling multiplier to the y coordinates before truncating them to integer values.
+
         """
         meta_arr = np.array((), dtype=np.int64)
         order = da.apply_gufunc(
@@ -395,10 +403,98 @@ class SpaceTimeMatrix:
             Scaling multiplier to the x coordinates before truncating them to integer values.
         yscale : float
             Scaling multiplier to the y coordinates before truncating them to integer values.
+
         """
         self._obj = self.get_order(xlabel, ylabel, xscale, yscale)
         self._obj = self._obj.sortby(self._obj.order)
         return self._obj
+
+    def enrich_from_dataset(self,
+                            dataset: xr.Dataset | xr.DataArray,
+                            fields: str | Iterable,
+                            method="nearest",
+                            ) -> xr.Dataset:
+        """Enrich the SpaceTimeMatrix from one or more fields of a dataset.
+
+        scipy is required. if dataset is raster, it uses
+        _enrich_from_raster_block to do interpolation using method. if dataset
+        is point, it uses _enrich_from_points_block to find the nearest points
+        in space and time using Euclidean distance.
+
+        Parameters
+        ----------
+        dataset : xarray.Dataset | xarray.DataArray
+            Input data for enrichment
+        fields : str or list of str
+            Field name(s) in the dataset for enrichment
+        method : str, optional
+            Method of interpolation, by default "nearest", see
+            https://docs.xarray.dev/en/stable/generated/xarray.Dataset.interp.html
+
+        Returns
+        -------
+        xarray.Dataset
+            Enriched STM.
+
+        """
+        # Check if fields is a Iterable or a str
+        if isinstance(fields, str):
+            fields = [fields]
+        elif not isinstance(fields, Iterable):
+            raise ValueError("fields need to be a Iterable or a string")
+
+        # if dataset is a DataArray, convert it to a Dataset
+        if isinstance(dataset, xr.DataArray):
+            dataset = dataset.to_dataset()
+
+        ds = self._obj
+        # check if both dataset and ds have coords_labels keys
+        for coord_label in ds.coords.keys():
+            if coord_label not in dataset.coords.keys():
+                raise ValueError(
+                    f'Coordinate label "{coord_label}" was not found in the input dataset.'
+                    )
+
+        # check if dataset is point or raster if 'space' in dataset.dims:
+        if "space" in dataset.dims:
+            approch = "point"
+        elif "lat" in dataset.dims and "lon" in dataset.dims:
+            approch = "raster"
+        elif "y" in dataset.dims and "x" in dataset.dims:
+            approch = "raster"
+        else:
+            raise ValueError(
+                "The input dataset is not a point or raster dataset."
+                "The dataset should have either 'space' or 'lat/y' and 'lon/x' dimensions."
+                "Consider renaming using "
+                "https://docs.xarray.dev/en/latest/generated/xarray.Dataset.rename.html#xarray-dataset-rename"
+                             )
+
+        # check if dataset has time dimensions
+        if "time" not in dataset.dims:
+            raise ValueError('Missing dimension: "time" in the input dataset.')
+
+        # check if dtype of time is the same
+        if dataset.time.dtype != ds.time.dtype:
+            raise ValueError("The input dataset and the STM have different time dtype.")
+
+        # TODO: check if both ds and dataset has same coordinate system
+
+        for field in fields:
+
+            # check if dataset has the fields
+            if field not in dataset.data_vars.keys():
+                raise ValueError(f'Field "{field}" not found in the the input dataset')
+
+            # check STM has the filed already
+            if field in ds.data_vars.keys():
+                raise ValueError(f'Field "{field}" already exists in the STM.')
+            # TODO: overwrite the field in the STM
+
+        if approch == "raster":
+            return _enrich_from_raster_block(ds, dataset, fields, method)
+        elif approch == "point":
+            return _enrich_from_points_block(ds, dataset, fields)
 
     @property
     def num_points(self):
@@ -408,6 +504,7 @@ class SpaceTimeMatrix:
         -------
         int
             Number of space entry.
+
         """
         return self._obj.dims["space"]
 
@@ -419,6 +516,7 @@ class SpaceTimeMatrix:
         -------
         int
             Number of epochs.
+
         """
         return self._obj.dims["time"]
 
@@ -472,6 +570,7 @@ def _ml_str_query(xx, yy, polygon, type_polygon):
         An array with two columns. The first column is the positional index into the list of
         polygons being used to query the tree. The second column is the positional index into
         the list of space entries for which the tree was constructed.
+
     """
     # Crop the polygon to the bounding box of the block
     xmin, ymin, xmax, ymax = [
@@ -537,6 +636,7 @@ def _validate_coords(ds, xlabel, ylabel):
     ------
     ValueError
         If xlabel or ylabel neither exists in coordinates, raise ValueError
+
     """
     for clabel in [xlabel, ylabel]:
         if clabel not in ds.coords.keys():
@@ -569,6 +669,82 @@ def _compute_morton_code(xx, yy):
     -------
     array_like
         An array with Morton codes per coordinate pair.
+
     """
     code = [pm.interleave(int(xi), int(yi)) for xi, yi in zip(xx, yy, strict=True)]
     return code
+
+
+def _enrich_from_raster_block(ds, dataraster, fields, method):
+    """Enrich the ds (SpaceTimeMatrix) from one or more fields of a raster dataset.
+
+    scipy is required. It uses xarray.Dataset.interp_like to interpolate the
+    raster dataset to the coordinates of ds.
+    https://docs.xarray.dev/en/stable/generated/xarray.Dataset.interp.html
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        SpaceTimeMatrix to enrich
+    dataraster : xarray.Dataset | xarray.DataArray
+        Input data for enrichment
+    fields : str or list of str
+        Field name(s) in the dataset for enrichment
+    method : str, optional
+        Method of interpolation, by default "nearest", see
+
+    Returns
+    -------
+    xarray.Dataset
+
+    """
+    # interpolate the raster dataset to the coordinates of ds
+    interpolated = dataraster.interp(ds.coords, method=method)
+
+    # Assign these values to the corresponding points in ds
+    for field in fields:
+        ds[field] = xr.DataArray(interpolated[field].data, dims=ds.dims, coords=ds.coords)
+    return ds
+
+
+def _enrich_from_points_block(ds, datapoints, fields):
+    """Enrich the ds (SpaceTimeMatrix) from one or more fields of a point dataset.
+
+    https://docs.xarray.dev/en/latest/generated/xarray.DataArray.sel.html#xarray.DataArray.sel
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        SpaceTimeMatrix to enrich
+    datapoints : xarray.Dataset | xarray.DataArray
+        Input data for enrichment
+    fields : str or list of str
+        Field name(s) in the dataset for enrichment
+
+    Returns
+    -------
+    xarray.Dataset
+
+    """
+    # unstak the dimensions
+    for dim in datapoints.dims:
+        if dim not in datapoints.coords:
+            indexer = {
+                dim: [
+                    coord for coord in datapoints.coords if dim in datapoints[coord].dims
+                    ]
+                }
+            datapoints = datapoints.set_index(indexer)
+            datapoints = datapoints.unstack(dim)
+
+    # do selection
+    indexers = {coord: ds[coord] for coord in list(datapoints.coords.keys())}
+    selections = datapoints.sel(indexers, method="nearest")
+
+    # Assign these values to the corresponding points in ds
+    for field in fields:
+        ds[field] = xr.DataArray(
+            selections[field].data.transpose(), dims=ds.dims, coords=ds.coords
+            )
+
+    return ds
