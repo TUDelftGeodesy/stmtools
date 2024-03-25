@@ -429,7 +429,7 @@ class SpaceTimeMatrix:
             Field name(s) in the dataset for enrichment
         method : str, optional
             Method of interpolation, by default "nearest", see
-            https://docs.xarray.dev/en/stable/generated/xarray.Dataset.interp_like.html#xarray-dataset-interp-like
+            https://docs.xarray.dev/en/stable/generated/xarray.Dataset.interp.html
 
         Returns
         -------

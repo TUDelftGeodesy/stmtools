@@ -623,7 +623,6 @@ class TestEnrichmentFromPointDataset:
 
     def test_enrich_from_point_cropped(self, stmat, meteo_points):
         buffer = {"lon": 1, "lat": 1, "time": pd.Timedelta("1D")}
-        print(stmat.lat.values)
         meteo_points_cropped = crop(stmat, meteo_points, buffer)
         stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points_cropped, "temperature")
         assert stmat_enriched.temperature[0, 0] == meteo_points_cropped.temperature[0, 1]
