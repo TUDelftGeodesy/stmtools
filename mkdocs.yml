@@ -9,7 +9,8 @@ nav:
   - Usage: 
     - Initiate an STM: stm_init.md
     - Operations on STM: operations.md
-  - Notebook page: notebooks/demo_stm.ipynb
+  - Example Notebooks:
+    - Example Operations: notebooks/demo_operations_stm.ipynb
   - Contributing guide: CONTRIBUTING.md
   - Change Log: CHANGELOG.md
 
