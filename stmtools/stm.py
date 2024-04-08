@@ -726,7 +726,7 @@ def _enrich_from_points_block(ds, datapoints, fields):
     xarray.Dataset
 
     """
-    # unstak the dimensions
+    # unstack the dimensions
     for dim in datapoints.dims:
         if dim not in datapoints.coords:
             indexer = {
