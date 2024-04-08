@@ -18,9 +18,9 @@ When applying spatial ordering, we order the elements according to their Morton 
 
 ![Morton orders](img/Four-level_Z.png)
 
-The translation to Morton code can be direct when the point coordinates are integers, such as pixel coordinates. Floating point coordinates must be scaled and truncated to integer values first, which determines the resolution of the Morton code.
+The translation to Morton code can be direct when the point coordinates are integers, such as pixel coordinates. Floating point coordinates must be scaled and truncated to integer values first. The choice of scale factor determines the resolution of the Morton code.
 
-Note that for a detailed dataset, a close group of points could be assigned the same Morton code, depending on the choice of scaling factor. These points will be grouped together after ordering, but their internal order will not be strictly detemined. In other words, we cannot detemine beforehand what their order will be, but they will not be separated by points with a different Morton code.
+Note that for a detailed dataset, a close group of points could be assigned the same Morton code, depending on the choice of scale factor. These points will be grouped together after ordering, but their internal order will not be strictly determined. In other words, we cannot detemine beforehand what their order will be, but they will not be separated by points with a different Morton code.
 
 
 ## Ordering existing stmat
@@ -32,7 +32,7 @@ If the coordinates are integer values, such as the pixel coordinates `X` and `Y`
 stmat_ordered = stmat_xy.stm.reorder(xlabel='X', ylabel='Y')
 ```
 
-If the coordinates are floating point coordinates, such as longitude and latitude, you must choose a scaling for each coordinate such that points that are at least a unit distance apart in either direction can be differentiated by their Morton code. For example, a scaling factor of ```1.1*10^5``` on the latitude coordinate means that points that are at least 1 meter apart will be assigned a different Morton code.
+If the coordinates are floating point coordinates, such as longitude and latitude, you must choose a scale factor for each coordinate such that points that are at least a unit distance apart in either direction can be differentiated by their Morton code. For example, a scale factor of ```1.1*10^5``` on the latitude coordinate means that points that are at least 1 meter apart will be assigned a different Morton code.
 
 ```python
 stmat_ordered = stmat_lonlat.stm.reorder(xlabel='lon', ylabel='lat', xscale=1.5*(10**5), yscale=1.7*(10**5))
@@ -48,7 +48,7 @@ stmat_ordered = stmat_ordered.sortby(stmat_ordered.order)
 
 ## Ordering new stmat
 
-Reading and writing data to a file can cost a significant amount of time. It is therefore usually beneficial not to overwrite existing data unless necessary. If you intend to apply spatial ordering to your STM, we advise doing so before writing your data to disk.
+Reading and writing data to disk can cost a significant amount of time. It is usually beneficial not to overwrite existing data unless necessary. If you intend to apply spatial ordering to your STM, we advise doing so before writing your data to disk.
 
 The following example selects some points of a sarxarray, reorders then, and only then writes them to disk:
 
@@ -61,4 +61,4 @@ stmat.to_zarr('stm.zarr')
 
 ## Effect on processing time
 
-The example notebooks contain an example of the effect or ordering the STM on processing time: [Example Ordering Notebook](./notebooks/demo_order_stm.ipynb)
+The example notebooks contain an example of the effect or ordering the STM on processing time: [Example Ordering notebook](./notebooks/demo_order_stm.ipynb)
