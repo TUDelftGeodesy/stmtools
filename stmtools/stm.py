@@ -13,7 +13,7 @@ from shapely.geometry import Point
 from shapely.strtree import STRtree
 
 from stmtools.metadata import DataVarTypes, STMMetaData
-from stmtools.utils import _has_property
+from stmtools.utils import _has_property, monotonic_coords, unique_coords
 
 logger = logging.getLogger(__name__)
 
@@ -739,6 +739,14 @@ def _enrich_from_points_block(ds, datapoints, fields):
 
     # do selection
     indexers = {coord: ds[coord] for coord in list(datapoints.coords.keys())}
+
+    # check if coords in indexers are monotonic and unique
+    for coord in indexers:
+        if not monotonic_coords(datapoints, coord):
+            raise ValueError(f"Coordinate {coord} is not monotonic.")
+        if not unique_coords(datapoints, coord):
+            raise ValueError(f"Coordinate {coord} is not unique.")
+
     selections = datapoints.sel(indexers, method="nearest")
 
     # Assign these values to the corresponding points in ds
