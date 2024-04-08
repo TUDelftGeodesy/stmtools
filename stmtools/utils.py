@@ -75,3 +75,44 @@ def crop(ds, other, buffer):
     other = other.transpose(*original_dims_order)
 
     return other
+
+
+def monotonic_coords(ds, dim: str):
+    """Check if the dataset is monotonic in the given dimension.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset to check.
+    dim : str
+        Dimension to check.
+
+    Returns
+    -------
+    bool
+        True if the dataset is monotonic, False otherwise.
+
+    """
+    return bool(
+        ds[dim].to_index().is_monotonic_increasing
+        or ds[dim].to_index().is_monotonic_decreasing
+    )
+
+
+def unique_coords(ds, dim: str ):
+    """Check if the dataset has unique coordinates in the given dimension.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset to check.
+    dim : str
+        Dimension to check.
+
+    Returns
+    -------
+    bool
+        True if the dataset has unique coordinates, False otherwise.
+
+    """
+    return bool(ds[dim].to_index().is_unique)
