@@ -170,7 +170,7 @@ class TestUniqueCoords:
         assert not utils.unique_coords(stmat, "lon")
 
     def test_non_unique_coords_lat(self, stmat):
-        stmat["lon"][0] = 1
+        stmat["lat"][0] = 1
         assert not utils.unique_coords(stmat, "lat")
 
     def test_non_unique_coords_time(self, stmat):
