@@ -14,7 +14,7 @@ from shapely.geometry import Point
 from shapely.strtree import STRtree
 
 from stmtools.metadata import DataVarTypes, STMMetaData
-from stmtools.utils import _has_property, monotonic_coords, unique_coords
+from stmtools.utils import _has_property
 
 logger = logging.getLogger(__name__)
 
@@ -728,7 +728,9 @@ def _enrich_from_points_block(ds, datapoints, fields):
     xarray.Dataset
 
     """
-    ## The reason that we use KDTRee instead of xarray.unstack is that the latter is slow for large datasets
+    # The reason that we use KDTRee instead of xarray.unstack is that the latter
+    # is slow for large datasets
+
     # check the dimensions
     indexer = {}
     for dim in ["space", "time"]:
