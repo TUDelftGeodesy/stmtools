@@ -9,6 +9,7 @@ import geopandas as gpd
 import numpy as np
 import pymorton as pm
 import xarray as xr
+from scipy.spatial import KDTree
 from shapely.geometry import Point
 from shapely.strtree import STRtree
 
@@ -710,7 +711,8 @@ def _enrich_from_raster_block(ds, dataraster, fields, method):
 def _enrich_from_points_block(ds, datapoints, fields):
     """Enrich the ds (SpaceTimeMatrix) from one or more fields of a point dataset.
 
-    https://docs.xarray.dev/en/latest/generated/xarray.DataArray.sel.html#xarray.DataArray.sel
+    Assumption is that dimensions of data are space and time.
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.KDTree.html#scipy.spatial.KDTree
 
     Parameters
     ----------
@@ -726,33 +728,44 @@ def _enrich_from_points_block(ds, datapoints, fields):
     xarray.Dataset
 
     """
-    # unstack the dimensions
-    for dim in datapoints.dims:
+    ## The reason that we use KDTRee instead of xarray.unstack is that the latter is slow for large datasets
+    # check the dimensions
+    indexer = {}
+    for dim in ["space", "time"]:
         if dim not in datapoints.coords:
-            indexer = {
-                dim: [
-                    coord for coord in datapoints.coords if dim in datapoints[coord].dims
-                    ]
-                }
-            datapoints = datapoints.set_index(indexer)
-            datapoints = datapoints.unstack(dim)
+            indexer[dim]= [
+                coord for coord in datapoints.coords if dim in datapoints[coord].dims
+                ]
+        else:
+            indexer[dim] = [dim]
 
-    # do selection
-    indexers = {coord: ds[coord] for coord in list(datapoints.coords.keys())}
+    ## datapoints
+    indexes = [datapoints[coord] for coord in indexer["space"]]
+    dataset_points_coords = np.column_stack(indexes)
 
-    # check if coords in indexers are monotonic and unique
-    for coord in indexers:
-        if not monotonic_coords(datapoints, coord):
-            raise ValueError(f"Coordinate {coord} is not monotonic.")
-        if not unique_coords(datapoints, coord):
-            raise ValueError(f"Coordinate {coord} is not unique.")
+    # ds
+    indexes = [ds[coord] for coord in indexer["space"]]
+    ds_coords = np.column_stack(indexes)
 
-    selections = datapoints.sel(indexers, method="nearest")
+    # Create a KDTree object for the spatial coordinates of datapoints
+    # Find the indices of the nearest points in space in datapoints for each point in ds
+    # it uses Euclidean distance
+    tree = KDTree(dataset_points_coords)
+    _, indices_space = tree.query(ds_coords)
+
+    # Create a KDTree object for the temporal coordinates of datapoints
+    # Find the indices of the nearest points in time in datapoints for each point in ds
+    datapoints_times = datapoints.time.values.reshape(-1, 1)
+    ds_times = ds.time.values.reshape(-1, 1)
+    tree = KDTree(datapoints_times)
+    _, indices_time = tree.query(ds_times)
+
+    selections = datapoints.isel(space=indices_space, time=indices_time)
 
     # Assign these values to the corresponding points in ds
     for field in fields:
         ds[field] = xr.DataArray(
-            selections[field].data.transpose(), dims=ds.dims, coords=ds.coords
+            selections[field].data, dims=ds.dims, coords=ds.coords
             )
 
     return ds
