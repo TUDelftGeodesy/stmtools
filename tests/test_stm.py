@@ -627,6 +627,30 @@ class TestEnrichmentFromPointDataset:
         stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points_cropped, "temperature")
         assert stmat_enriched.temperature[0, 0] == meteo_points_cropped.temperature[0, 1]
 
+    def test_enrich_from_point_nanmonotonic_coords(self, stmat, meteo_points):
+        # make the coordinates non-monotonic
+        meteo_points["lon"][0] = 25
+        meteo_points["lat"][0] = 25
+
+        stmat["lon"][0] = 25
+        stmat["lat"][0] = 25
+
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
+        assert stmat_enriched.temperature[0, 0] == meteo_points.temperature[0, 1]
+
+    def test_enrich_from_point_duplicate_coords(self, stmat, meteo_points):
+        # make the coordinates duplicates,
+        # now both locations 0 and 1 have the same coords but different
+        # temperature values
+        meteo_points["lon"][0] = 0.5
+        meteo_points["lat"][0] = 0.5
+
+        stmat["lon"][0] = 0.5
+        stmat["lat"][0] = 0.5
+
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
+        assert stmat_enriched.temperature[0, 0] == meteo_points.temperature[1, 1]
+
 
 class TestEnrichmentFromRasterDataset:
     def test_enrich_from_dataset_one_filed(self, stmat, meteo_raster):
