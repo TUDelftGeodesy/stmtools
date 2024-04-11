@@ -651,6 +651,14 @@ class TestEnrichmentFromPointDataset:
         stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
         assert stmat_enriched.temperature[0, 0] == meteo_points.temperature[1, 1]
 
+    def test_enrichfrom_point_nanmonotonic_times(self, stmat, meteo_points):
+        # make the time non-monotonic
+        meteo_points["time"].values[0] = pd.Timestamp("2022-01-01")
+        stmat["time"].values[0] = pd.Timestamp("2022-01-01")
+
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
+        assert stmat_enriched.temperature[0, 0] == meteo_points.temperature[0, 0]
+
 
 class TestEnrichmentFromRasterDataset:
     def test_enrich_from_dataset_one_filed(self, stmat, meteo_raster):
