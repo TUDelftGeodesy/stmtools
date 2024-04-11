@@ -158,8 +158,3 @@ cython_debug/
 # VSCode
 .vscode
 
-
-# Demo data
-docs/notebooks/bag_light_AMS_WGS84.gpkg
-docs/notebooks/stm.zarr
-docs/notebooks/stm_ordered.zarr
