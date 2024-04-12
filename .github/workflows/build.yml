@@ -33,7 +33,7 @@ jobs:
     - name: Build the package
       run: python -m build
     - name: Test with pytest
-      run: python -m pytest
+      run: python -m pytest -vv
 
   build_doc:
     runs-on: ubuntu-latest
