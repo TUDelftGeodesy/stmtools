@@ -326,8 +326,8 @@ def stmat():
             ),
         ),
         coords=dict(
-            lon=(["space"], da.arange(npoints)),
-            lat=(["space"], da.arange(npoints)),
+            lon=(["space"], da.arange(npoints).astype('float64')),
+            lat=(["space"], da.arange(npoints).astype('float64')),
             time=(["time"], pd.date_range(start='2021-01-02', periods=ntime)),
         ),
     ).unify_chunks()
@@ -629,11 +629,11 @@ class TestEnrichmentFromPointDataset:
 
     def test_enrich_from_point_nanmonotonic_coords(self, stmat, meteo_points):
         # make the coordinates non-monotonic
-        meteo_points["lon"][0] = 25
-        meteo_points["lat"][0] = 25
+        meteo_points["lon"][0] = 25.0
+        meteo_points["lat"][0] = 25.0
 
-        stmat["lon"][0] = 25
-        stmat["lat"][0] = 25
+        stmat["lon"][0] = 25.0
+        stmat["lat"][0] = 25.0
 
         stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
         assert stmat_enriched.temperature[0, 0] == meteo_points.temperature[0, 1]
