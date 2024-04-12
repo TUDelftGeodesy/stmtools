@@ -399,10 +399,12 @@ class SpaceTimeMatrix:
         self._obj = self.get_order(xlabel, ylabel, xscale, yscale)
         
         # Sorting may split up the chunks, which may interfere with later operations, so we immediately restore the chunk sizes.
-        chunks = {
-            "space": self._obj.chunksizes["space"][0],
-            "time": self._obj.chunksizes["time"][0],
-        }
+        chunks = {"space": self._obj.chunksizes["space"][0]}
+        if "time" in self._obj.chunksizes:
+            chunks = {
+                "space": self._obj.chunksizes["space"][0],
+                "time": self._obj.chunksizes["time"][0],
+            }
         self._obj = self._obj.sortby(self._obj.order)
         self._obj = self._obj.chunk(chunks)
 
