@@ -643,10 +643,10 @@ class TestEnrichmentFromPointDataset:
 
     def test_enrich_from_point_duplicate_coords(self, stmat, meteo_points):
         # make the coordinates duplicates,
-        # now both locations 0 and 1 have the same coords but different
-        # temperature values
+        # now both locations 0 and 1 have the same coords and temperature values
         meteo_points["lon"][0] = 0.5
         meteo_points["lat"][0] = 0.5
+        meteo_points.temperature[1, :] = meteo_points.temperature[0, :]
 
         stmat["lon"][0] = 0.5
         stmat["lat"][0] = 0.5
