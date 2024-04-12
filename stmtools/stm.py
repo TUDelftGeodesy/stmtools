@@ -24,7 +24,7 @@ class SpaceTimeMatrix:
     """Space-Time Matrix."""
 
     def __init__(self, xarray_obj):
-        """init."""
+        """Init."""
         self._obj = xarray_obj
 
     def add_metadata(self, metadata):
