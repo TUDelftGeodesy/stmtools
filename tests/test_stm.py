@@ -547,7 +547,7 @@ class TestEnrichmentFromPointDataset:
         assert "temperature" in stmat_enriched.data_vars
 
         # check if the nearest method is correct
-        assert stmat_enriched.temperature[0, 0] == meteo_points.temperature[0, 1]
+        assert stmat_enriched.temperature[0, 0].values == meteo_points.temperature[0, 1].values
 
         # check dimensions of stmat_enriched are the same as stmat
         assert stmat_enriched.dims == stmat.dims
@@ -563,8 +563,8 @@ class TestEnrichmentFromPointDataset:
         assert "humidity" in stmat_enriched.data_vars
 
         # check if the linear interpolation is correct
-        assert stmat_enriched.temperature[0, 0] == meteo_points.temperature[0, 1]
-        assert stmat_enriched.humidity[0, 0] == meteo_points.humidity[0, 1]
+        assert stmat_enriched.temperature[0, 0].values == meteo_points.temperature[0, 1].values
+        assert stmat_enriched.humidity[0, 0].values == meteo_points.humidity[0, 1].values
 
     def test_enrich_from_dataset_exceptions(self, stmat, meteo_points):
         # valid fileds
@@ -612,7 +612,7 @@ class TestEnrichmentFromPointDataset:
         assert "temperature" in stmat_enriched.data_vars
 
         # check if the linear interpolation is correct
-        assert stmat_enriched.temperature[0, 0] == meteo_points.temperature[0, 1]
+        assert stmat_enriched.temperature[0, 0].values == meteo_points.temperature[0, 1].values
 
     def test_all_operations_lazy(self, stmat, meteo_points):
         stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
@@ -625,18 +625,21 @@ class TestEnrichmentFromPointDataset:
         buffer = {"lon": 1, "lat": 1, "time": pd.Timedelta("1D")}
         meteo_points_cropped = crop(stmat, meteo_points, buffer)
         stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points_cropped, "temperature")
-        assert stmat_enriched.temperature[0, 0] == meteo_points_cropped.temperature[0, 1]
+        assert (
+            stmat_enriched.temperature[0, 0].values
+            == meteo_points_cropped.temperature[0, 1].values
+            )
 
-    # def test_enrich_from_point_nanmonotonic_coords(self, stmat, meteo_points):
-    #     # make the coordinates non-monotonic
-    #     meteo_points["lon"][0] = 25.0
-    #     meteo_points["lat"][0] = 25.0
+    def test_enrich_from_point_nanmonotonic_coords(self, stmat, meteo_points):
+        # make the coordinates non-monotonic
+        meteo_points["lon"][0] = 25.0
+        meteo_points["lat"][0] = 25.0
 
-    #     stmat["lon"][0] = 25.5
-    #     stmat["lat"][0] = 25.5
+        stmat["lon"][0] = 25.5
+        stmat["lat"][0] = 25.5
 
-    #     stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
-    #     assert stmat_enriched.temperature[0, 0] == meteo_points.temperature[0, 1]
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
+        assert stmat_enriched.temperature[0, 0].values == meteo_points.temperature[0, 1].values
 
     def test_enrich_from_point_duplicate_coords(self, stmat, meteo_points):
         # make the coordinates duplicates,
@@ -649,7 +652,7 @@ class TestEnrichmentFromPointDataset:
         stmat["lat"][0] = 0.5
 
         stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
-        assert stmat_enriched.temperature[0, 0] == meteo_points.temperature[1, 1]
+        assert stmat_enriched.temperature[0, 0].values == meteo_points.temperature[1, 1].values
 
     def test_enrichfrom_point_nanmonotonic_times(self, stmat, meteo_points):
         # make the time non-monotonic
@@ -657,7 +660,7 @@ class TestEnrichmentFromPointDataset:
         stmat["time"].values[0] = pd.Timestamp("2022-01-01")
 
         stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
-        assert stmat_enriched.temperature[0, 0] == meteo_points.temperature[0, 0]
+        assert stmat_enriched.temperature[0, 0].values == meteo_points.temperature[0, 0].values
 
 
 class TestEnrichmentFromRasterDataset:
@@ -666,7 +669,7 @@ class TestEnrichmentFromRasterDataset:
         assert "temperature" in stmat_enriched.data_vars
 
         # check if the nearest method is correct
-        assert stmat_enriched.temperature[0, 0] == meteo_raster.temperature[0, 0, 1]
+        assert stmat_enriched.temperature[0, 0].values == meteo_raster.temperature[0, 0, 1].values
 
         # check dimensions of stmat_enriched are the same as stmat
         assert stmat_enriched.dims == stmat.dims
@@ -682,8 +685,8 @@ class TestEnrichmentFromRasterDataset:
         assert "humidity" in stmat_enriched.data_vars
 
         # check if the linear interpolation is correct
-        assert stmat_enriched.temperature[0, 0] == meteo_raster.temperature[0, 0, 1]
-        assert stmat_enriched.humidity[0, 0] == meteo_raster.humidity[0, 0, 1]
+        assert stmat_enriched.temperature[0, 0].values == meteo_raster.temperature[0, 0, 1].values
+        assert stmat_enriched.humidity[0, 0].values == meteo_raster.humidity[0, 0, 1].values
 
     def test_enrich_from_dataset_exceptions(self, stmat, meteo_raster):
         # valid fileds
@@ -731,7 +734,7 @@ class TestEnrichmentFromRasterDataset:
         assert "temperature" in stmat_enriched.data_vars
 
         # check if the linear interpolation is correct
-        assert stmat_enriched.temperature[0, 0] == meteo_raster.temperature[0, 0, 1]
+        assert stmat_enriched.temperature[0, 0].values == meteo_raster.temperature[0, 0, 1].values
 
     def test_all_operations_lazy(self, stmat, meteo_raster):
         stmat_enriched = stmat.stm.enrich_from_dataset(meteo_raster, "temperature")
@@ -744,4 +747,7 @@ class TestEnrichmentFromRasterDataset:
         buffer = {"lon": 1, "lat": 1, "time": pd.Timedelta("1D")}
         meteo_raster_cropped = crop(stmat, meteo_raster, buffer)
         stmat_enriched = stmat.stm.enrich_from_dataset(meteo_raster_cropped, "temperature")
-        assert stmat_enriched.temperature[0, 0] == meteo_raster_cropped.temperature[0, 0, 1]
+        assert (
+            stmat_enriched.temperature[0, 0].values
+            == meteo_raster_cropped.temperature[0, 0, 1].values
+            )
