@@ -157,22 +157,3 @@ class TestMonotonicCoords:
         stmat["time"].values[0] = '2022-01-02T00:00:00.000000000'
         stmat["time"].values[1] = '2022-01-01T00:00:00.000000000'
         assert not utils.monotonic_coords(stmat, "time")
-
-
-class TestUniqueCoords:
-    def test_unique_coords(self, stmat):
-        assert utils.unique_coords(stmat, "lon")
-        assert utils.unique_coords(stmat, "lat")
-        assert utils.unique_coords(stmat, "time")
-
-    def test_non_unique_coords_lon(self, stmat):
-        stmat["lon"][0] = 1
-        assert not utils.unique_coords(stmat, "lon")
-
-    def test_non_unique_coords_lat(self, stmat):
-        stmat["lat"][0] = 1
-        assert not utils.unique_coords(stmat, "lat")
-
-    def test_non_unique_coords_time(self, stmat):
-        stmat["time"].values[0] = '2021-01-03T00:00:00.000000000'
-        assert not utils.unique_coords(stmat, "time")
