@@ -7,7 +7,7 @@ STMTools supports (re)ordering the elements in an STM.
 
 The data elements in an STM can be ordered according to a wide variety aspects, such as time, horizontal before vertical, or classification. The choice of order can have a significant impact on the performance of operations applied to the data.
 
-An important consideration is that operations often don't have to be applied to the complete dataset. An STM is always loaded per chunk, so it can be beneficial to collect elements in a chunk that should be processed together.
+An important consideration is that operations often don't have to be applied to the complete dataset. An STM is always loaded per chunk and an operation may be able to ignore a chunk based on its metadata, such as its bounding box. It can be beneficial to group elements into chunks that will usually be processed or ignored together.
 
 Our operations often prefer elements to be ordered by spatial coherency. For example, to enrich or subset an STM, the element positions will have to be compared to polygons. Ideally, we only want to process elements that are near the query polygon.
 
@@ -45,6 +45,8 @@ stmat_ordered = stmat_ar.stm.get_order(xlabel='azimuth', ylabel='range', xscale=
 stmat_ordered = stmat_ordered.sortby(stmat_ordered.order)
 ```
 
+This process will cut the chunks into many small pieces and reorder those pieces. It does not combine them into bigger chunks. The `reorder` function above will also rechunk the data using the same chunk sizes as before reordering.
+
 
 ## Ordering new stmat
 
@@ -61,4 +63,6 @@ stmat.to_zarr('stm.zarr')
 
 ## Effect on processing time
 
-The example notebooks contain an example of the effect or ordering the STM on processing time: [Example Ordering notebook](./notebooks/demo_order_stm.ipynb)
+The example notebooks contain an example of the effect on processing time of ordering the STM: [Example Ordering notebook](./notebooks/demo_order_stm.ipynb)
+
+This notebook also shows when ordering may not yield significant benefits. As a rule of thumb, ordering is expected to be beneficial when the chunks are small relative to the size and spatial extent of the data. In this case, reordering can reduce the spatial extent of the chunks while keeping their size, i.e. number of elements, the same.
