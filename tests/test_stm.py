@@ -3,11 +3,13 @@ from pathlib import Path
 import dask.array as da
 import geopandas as gpd
 import numpy as np
+import pandas as pd
 import pytest
 import xarray as xr
 from shapely import geometry
 
 from stmtools.stm import _validate_coords
+from stmtools.utils import crop
 
 path_multi_polygon = Path(__file__).parent / "./data/multi_polygon.gpkg"
 
@@ -253,6 +255,83 @@ def stmat_lonlat_morton():
         ),
     ).unify_chunks()
 
+@pytest.fixture
+
+def meteo_points():
+    n_times = 20
+    n_locations = 50
+    lon_values = np.arange(0, n_locations/2, 0.5)
+    lat_values = np.arange(0, n_locations/2, 0.5)
+    time_values = pd.date_range(start='2021-01-01', periods=n_times)
+    data = da.arange(n_locations * n_times).reshape((n_locations, n_times))
+
+    return xr.Dataset(
+        data_vars=dict(
+            temperature=(["space", "time"], data),
+            humidity=(["space", "time"], data),
+        ),
+        coords=dict(
+            lon=(["space"], lon_values),
+            lat=(["space"], lat_values),
+            time=(["time"], time_values),
+        ),
+    ).unify_chunks()
+
+@pytest.fixture
+def meteo_raster():
+    n_times = 20
+    n_locations = 50
+    lon_values = np.arange(n_locations)
+    lat_values = np.arange(n_locations)
+    time_values = pd.date_range(start='2021-01-01', periods=n_times)
+    # add x and y values
+    x_values = np.arange(n_locations)
+    y_values = np.arange(n_locations)
+
+    data = da.arange(n_locations * n_locations * n_times).reshape(
+        (n_locations, n_locations, n_times)
+        )
+
+    return xr.Dataset(
+        data_vars=dict(
+            temperature=(["lon", "lat", "time"], data),
+            humidity=(["lon", "lat", "time"], data),
+        ),
+        coords=dict(
+            lon=(["lon"], lon_values),
+            lat=(["lat"], lat_values),
+            x=(["lon"], x_values),
+            y=(["lat"], y_values),
+            time=(["time"], time_values),
+        ),
+    ).unify_chunks()
+
+@pytest.fixture
+def stmat():
+    npoints = 10
+    ntime = 5
+    return xr.Dataset(
+        data_vars=dict(
+            amplitude=(
+                ["space", "time"],
+                da.arange(npoints * ntime).reshape((npoints, ntime)),
+            ),
+            phase=(
+                ["space", "time"],
+                da.arange(npoints * ntime).reshape((npoints, ntime)),
+            ),
+            pnt_height=(
+                ["space"],
+                da.arange(npoints),
+            ),
+        ),
+        coords=dict(
+            lon=(["space"], da.arange(npoints).astype('float64')),
+            lat=(["space"], da.arange(npoints).astype('float64')),
+            time=(["time"], pd.date_range(start='2021-01-02', periods=ntime)),
+        ),
+    ).unify_chunks()
+
 
 class TestRegulateDims:
     def test_time_dim_exists(self, stmat_only_point):
@@ -460,3 +539,215 @@ class TestOrderPoints:
         assert not stmat_naive.range.equals(stmat_lonlat_morton.range)
         assert stmat.azimuth.equals(stmat_lonlat_morton.azimuth)
         assert stmat.range.equals(stmat_lonlat_morton.range)
+
+
+class TestEnrichmentFromPointDataset:
+    def test_enrich_from_dataset_one_filed(self, stmat, meteo_points):
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
+        assert "temperature" in stmat_enriched.data_vars
+
+        # check if the nearest method is correct
+        assert stmat_enriched.temperature[0, 0].values == meteo_points.temperature[0, 1].values
+
+        # check dimensions of stmat_enriched are the same as stmat
+        assert stmat_enriched.dims == stmat.dims
+
+        # check if coordinates are correct
+        assert stmat_enriched.lon.equals(stmat.lon)
+        assert stmat_enriched.lat.equals(stmat.lat)
+        assert stmat_enriched.time.equals(stmat.time)
+
+    def test_enrich_from_dataset_multi_filed(self, stmat, meteo_points):
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, ["temperature", "humidity"])
+        assert "temperature" in stmat_enriched.data_vars
+        assert "humidity" in stmat_enriched.data_vars
+
+        # check if the linear interpolation is correct
+        assert stmat_enriched.temperature[0, 0].values == meteo_points.temperature[0, 1].values
+        assert stmat_enriched.humidity[0, 0].values == meteo_points.humidity[0, 1].values
+
+    def test_enrich_from_dataset_exceptions(self, stmat, meteo_points):
+        # valid fileds
+        with pytest.raises(ValueError) as excinfo:
+            field = "non_exist_field"
+            stmat.stm.enrich_from_dataset(meteo_points, field)
+            assert f'Field "{field}" not found' in str(excinfo.value)
+
+        # valid dtype of "time"
+        another_meteo_points = meteo_points.copy(deep=True)
+        another_meteo_points["time"] = another_meteo_points["time"].astype("float64")
+        with pytest.raises(ValueError) as excinfo:
+            stmat.stm.enrich_from_dataset(another_meteo_points, "temperature")
+            assert "different time dtype" in str(excinfo.value)
+
+        # "time" dimension should exist in the meteo_points
+        another_meteo_points = meteo_points.copy(deep=True)
+        another_meteo_points = another_meteo_points.drop_vars("time")
+        with pytest.raises(ValueError) as excinfo:
+            stmat.stm.enrich_from_dataset(another_meteo_points, "temperature")
+            assert 'Missing dimension: "time"' in str(excinfo.value)
+
+        # keys of coordinates should be the same
+        another_meteo_points = meteo_points.copy(deep=True)
+        another_meteo_points = another_meteo_points.rename({"lon": "long"})
+        with pytest.raises(ValueError) as excinfo:
+            stmat.stm.enrich_from_dataset(another_meteo_points, "temperature")
+            assert 'Coordinate label "long" was not found' in str(excinfo.value)
+
+        # dimensions either space or lon/lat should exist
+        another_meteo_points = meteo_points.copy(deep=True)
+        another_meteo_points = another_meteo_points.drop_dims("space")
+        with pytest.raises(ValueError) as excinfo:
+            stmat.stm.enrich_from_dataset(another_meteo_points, "temperature")
+            assert 'Missing dimension: "space" or "lon" and "lat"' in str(excinfo.value)
+
+        # field already exists
+        another_stmat = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
+        with pytest.raises(ValueError) as excinfo:
+            another_stmat.stm.enrich_from_dataset(meteo_points, "temperature")
+            assert 'Field "temperature" already exists' in str(excinfo.value)
+
+    def test_enrich_from_dataarray_one_filed(self, stmat, meteo_points):
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points.temperature, "temperature")
+        assert "temperature" in stmat_enriched.data_vars
+
+        # check if the linear interpolation is correct
+        assert stmat_enriched.temperature[0, 0].values == meteo_points.temperature[0, 1].values
+
+    def test_all_operations_lazy(self, stmat, meteo_points):
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
+        assert stmat_enriched.temperature.data.dask is not None
+        assert stmat_enriched.lon.data.dask is not None
+        assert stmat_enriched.lat.data.dask is not None
+        # dont check time because it is not a dask array
+
+    def test_enrich_from_point_cropped(self, stmat, meteo_points):
+        buffer = {"lon": 1, "lat": 1, "time": pd.Timedelta("1D")}
+        meteo_points_cropped = crop(stmat, meteo_points, buffer)
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points_cropped, "temperature")
+        assert (
+            stmat_enriched.temperature[0, 0].values
+            == meteo_points_cropped.temperature[0, 1].values
+            )
+
+    def test_enrich_from_point_nanmonotonic_coords(self, stmat, meteo_points):
+        # make the coordinates non-monotonic
+        meteo_points["lon"][0] = 25.0
+        meteo_points["lat"][0] = 25.0
+
+        stmat["lon"][0] = 25.5
+        stmat["lat"][0] = 25.5
+
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
+        assert stmat_enriched.temperature[0, 0].values == meteo_points.temperature[0, 1].values
+
+    def test_enrich_from_point_duplicate_coords(self, stmat, meteo_points):
+        # make the coordinates duplicates,
+        # now both locations 0 and 1 have the same coords and temperature values
+        meteo_points["lon"][0] = 0.5
+        meteo_points["lat"][0] = 0.5
+        meteo_points.temperature[1, :] = meteo_points.temperature[0, :]
+
+        stmat["lon"][0] = 0.5
+        stmat["lat"][0] = 0.5
+
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
+        assert stmat_enriched.temperature[0, 0].values == meteo_points.temperature[1, 1].values
+
+    def test_enrichfrom_point_nanmonotonic_times(self, stmat, meteo_points):
+        # make the time non-monotonic
+        meteo_points["time"].values[0] = pd.Timestamp("2022-01-01")
+        stmat["time"].values[0] = pd.Timestamp("2022-01-01")
+
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_points, "temperature")
+        assert stmat_enriched.temperature[0, 0].values == meteo_points.temperature[0, 0].values
+
+
+class TestEnrichmentFromRasterDataset:
+    def test_enrich_from_dataset_one_filed(self, stmat, meteo_raster):
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_raster, "temperature")
+        assert "temperature" in stmat_enriched.data_vars
+
+        # check if the nearest method is correct
+        assert stmat_enriched.temperature[0, 0].values == meteo_raster.temperature[0, 0, 1].values
+
+        # check dimensions of stmat_enriched are the same as stmat
+        assert stmat_enriched.dims == stmat.dims
+
+        # check if coordinates are correct
+        assert stmat_enriched.lon.equals(stmat.lon)
+        assert stmat_enriched.lat.equals(stmat.lat)
+        assert stmat_enriched.time.equals(stmat.time)
+
+    def test_enrich_from_dataset_multi_filed(self, stmat, meteo_raster):
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_raster, ["temperature", "humidity"])
+        assert "temperature" in stmat_enriched.data_vars
+        assert "humidity" in stmat_enriched.data_vars
+
+        # check if the linear interpolation is correct
+        assert stmat_enriched.temperature[0, 0].values == meteo_raster.temperature[0, 0, 1].values
+        assert stmat_enriched.humidity[0, 0].values == meteo_raster.humidity[0, 0, 1].values
+
+    def test_enrich_from_dataset_exceptions(self, stmat, meteo_raster):
+        # valid fileds
+        with pytest.raises(ValueError) as excinfo:
+            field = "non_exist_field"
+            stmat.stm.enrich_from_dataset(meteo_raster, field)
+            assert f'Field "{field}" not found' in str(excinfo.value)
+
+        # valid dtype of "time"
+        another_meteo_raster = meteo_raster.copy(deep=True)
+        another_meteo_raster["time"] = another_meteo_raster["time"].astype("float64")
+        with pytest.raises(ValueError) as excinfo:
+            stmat.stm.enrich_from_dataset(another_meteo_raster, "temperature")
+            assert "different time dtype" in str(excinfo.value)
+
+        # "time" dimension should exist in the meteo_raster
+        another_meteo_raster = meteo_raster.copy(deep=True)
+        another_meteo_raster = another_meteo_raster.drop_vars("time")
+        with pytest.raises(ValueError) as excinfo:
+            stmat.stm.enrich_from_dataset(another_meteo_raster, "temperature")
+            assert 'Missing dimension: "time"' in str(excinfo.value)
+
+        # keys of coordinates should be the same
+        another_meteo_raster = meteo_raster.copy(deep=True)
+        another_meteo_raster = another_meteo_raster.rename({"lon": "long"})
+        with pytest.raises(ValueError) as excinfo:
+            stmat.stm.enrich_from_dataset(another_meteo_raster, "temperature")
+            assert 'Coordinate label "long" was not found' in str(excinfo.value)
+
+        # dimensions either space or lon/lat should exist
+        another_meteo_raster = meteo_raster.copy(deep=True)
+        another_meteo_raster = another_meteo_raster.drop_dims("lat")
+        with pytest.raises(ValueError) as excinfo:
+            stmat.stm.enrich_from_dataset(another_meteo_raster, "temperature")
+            assert 'Missing dimension: "space" or "lon" and "lat"' in str(excinfo.value)
+
+        # field already exists
+        another_stmat = stmat.stm.enrich_from_dataset(meteo_raster, "temperature")
+        with pytest.raises(ValueError) as excinfo:
+            another_stmat.stm.enrich_from_dataset(meteo_raster, "temperature")
+            assert 'Field "temperature" already exists' in str(excinfo.value)
+
+    def test_enrich_from_dataarray_one_filed(self, stmat, meteo_raster):
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_raster.temperature, "temperature")
+        assert "temperature" in stmat_enriched.data_vars
+
+        # check if the linear interpolation is correct
+        assert stmat_enriched.temperature[0, 0].values == meteo_raster.temperature[0, 0, 1].values
+
+    def test_all_operations_lazy(self, stmat, meteo_raster):
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_raster, "temperature")
+        assert stmat_enriched.temperature.data.dask is not None
+        assert stmat_enriched.lon.data.dask is not None
+        assert stmat_enriched.lat.data.dask is not None
+        # dont check time because it is not a dask array
+
+    def test_enrich_from_raste_cropped(self, stmat, meteo_raster):
+        buffer = {"lon": 1, "lat": 1, "time": pd.Timedelta("1D")}
+        meteo_raster_cropped = crop(stmat, meteo_raster, buffer)
+        stmat_enriched = stmat.stm.enrich_from_dataset(meteo_raster_cropped, "temperature")
+        assert (
+            stmat_enriched.temperature[0, 0].values
+            == meteo_raster_cropped.temperature[0, 0, 1].values
+            )
