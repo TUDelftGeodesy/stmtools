@@ -43,3 +43,5 @@ to see if someone already filed the same issue;
 - create the pull request, e.g. following [the instructions: creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
 
 In case you feel like you've made a valuable contribution, but you don't know how to write or run tests for it, or how to generate the documentation: don't let this discourage you from making the pull request; we can help you! Just go ahead and submit the pull request, but keep in mind that you might be asked to append additional commits to your pull request.
+
+In case you want to add documentation and you don't have mkdocs installed in your root environment, you can install it by calling ```pip install -e .[docs]```. You can then test your documentation by calling ```mkdocs serve```.
