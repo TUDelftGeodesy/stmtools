@@ -7,7 +7,6 @@ from pathlib import Path
 import dask.array as da
 import geopandas as gpd
 import numpy as np
-import pandas as pd
 import pymorton as pm
 import xarray as xr
 import warnings
