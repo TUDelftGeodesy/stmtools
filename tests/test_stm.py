@@ -336,28 +336,28 @@ def stmat():
 class TestRegulateDims:
     def test_time_dim_exists(self, stmat_only_point):
         stm_reg = stmat_only_point.stm.regulate_dims()
-        assert "time" in stm_reg.dims.keys()
+        assert "time" in stm_reg.sizes.keys()
 
     def test_time_dim_size_one(self, stmat_only_point):
         stm_reg = stmat_only_point.stm.regulate_dims()
-        assert stm_reg.dims["time"] == 1
+        assert stm_reg.sizes["time"] == 1
 
     def test_time_dim_customed_label(self, stmat_wrong_space_label):
         stm_reg = stmat_wrong_space_label.stm.regulate_dims(space_label="space2")
-        assert stm_reg.dims["time"] == 1
-        assert stm_reg.dims["space"] == 10
+        assert stm_reg.sizes["time"] == 1
+        assert stm_reg.sizes["space"] == 10
 
     def test_pnt_time_dim_nonexists(self, stmat_only_point):
         """
         For data variable with name pattern "pnt_*", there should be no time dimension.
         """
         stm_reg = stmat_only_point.stm.regulate_dims()
-        assert "time" not in stm_reg["pnt_height"].dims
+        assert "time" not in stm_reg["pnt_height"].sizes
 
     def test_subset_works_after_regulate_dims(self, stmat_only_point):
         stm_reg = stmat_only_point.stm.regulate_dims()
         stm_reg_subset = stm_reg.stm.subset(method="threshold", var="pnt_height", threshold=">5")
-        assert stm_reg_subset.dims["space"] == 4
+        assert stm_reg_subset.sizes["space"] == 4
 
     def test_validate_coords(self):
         stmat_coords = xr.Dataset(
@@ -550,7 +550,7 @@ class TestEnrichmentFromPointDataset:
         assert stmat_enriched.temperature[0, 0].values == meteo_points.temperature[0, 1].values
 
         # check dimensions of stmat_enriched are the same as stmat
-        assert stmat_enriched.dims == stmat.dims
+        assert stmat_enriched.sizes == stmat.sizes
 
         # check if coordinates are correct
         assert stmat_enriched.lon.equals(stmat.lon)
@@ -672,7 +672,7 @@ class TestEnrichmentFromRasterDataset:
         assert stmat_enriched.temperature[0, 0].values == meteo_raster.temperature[0, 0, 1].values
 
         # check dimensions of stmat_enriched are the same as stmat
-        assert stmat_enriched.dims == stmat.dims
+        assert stmat_enriched.sizes == stmat.sizes
 
         # check if coordinates are correct
         assert stmat_enriched.lon.equals(stmat.lon)

@@ -15,7 +15,7 @@ class TestFromCSV:
         return stmtools.from_csv(path_example_csv)
 
     def test_readcsv_dims(self, example_data):
-        assert example_data.dims == {"space": 2500, "time": 11}
+        assert example_data.sizes == {"space": 2500, "time": 11}
 
     def test_readcsv_vars(self, example_data):
         expected_columns = [
