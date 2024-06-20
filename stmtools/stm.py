@@ -1,6 +1,7 @@
 """space-time matrix module."""
 
 import logging
+import warnings
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -9,7 +10,6 @@ import geopandas as gpd
 import numpy as np
 import pymorton as pm
 import xarray as xr
-import warnings
 from scipy.spatial import KDTree
 from shapely.geometry import Point
 from shapely.strtree import STRtree
