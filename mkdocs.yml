@@ -3,7 +3,7 @@ repo_url: https://github.com/tudelftgeodesy/stmtools/
 repo_name: STM Tools
 
 nav:
-  - Getting started: 
+  - Getting Started: 
     - About STM Tools: index.md
     - Installation: setup.md
   - Usage: 
@@ -13,7 +13,9 @@ nav:
   - Example Notebooks:
     - Example Operations: notebooks/demo_operations_stm.ipynb
     - Example Ordering: notebooks/demo_order_stm.ipynb
-  - Contributing guide: CONTRIBUTING.md
+  - Contributing Guide:
+    - Contributing Guidelines: CONTRIBUTING.md
+    - Code of Conduct: CODE_OF_CONDUCT.md
   - Change Log: CHANGELOG.md
 
 
