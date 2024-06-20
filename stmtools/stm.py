@@ -135,7 +135,7 @@ class SpaceTimeMatrix:
         """
         # Check if both "space" and "time" dimension exists
         for dim in ["space", "time"]:
-            if dim not in self._obj.dims.keys():
+            if dim not in self._obj.sizes.keys():
                 raise KeyError(
                     f'Missing dimension: "{dim}". \
                     You can use the function ".regulate_dim()" to add it.'
