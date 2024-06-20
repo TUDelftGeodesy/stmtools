@@ -422,7 +422,9 @@ class SpaceTimeMatrix:
                 "time": self._obj.chunksizes["time"][0],
             }
         with warnings.catch_warnings():
-            # Trying to supporess only [...]/lib/python3.12/site-packages/xarray/core/indexing.py:1620: PerformanceWarning: Slicing with an out-of-order index is generating [...] times more chunks
+            # Trying to supporess only
+            # [...]/lib/python3.12/site-packages/xarray/core/indexing.py:1620: PerformanceWarning:
+            # Slicing with an out-of-order index is generating [...] times more chunks
             # but unable to find the warning category.
             #warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
             warnings.simplefilter(action="ignore")
