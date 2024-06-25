@@ -1,6 +1,7 @@
 """space-time matrix module."""
 
 import logging
+import warnings
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -392,6 +393,9 @@ class SpaceTimeMatrix:
         resolution of the ordering: only the whole-number part influences the order.
         While coordinates could also be offset, this has limited effect on the relative order.
 
+        Also note that reordering a dataset may be an expensive operation. Because it is applied
+        lazily, this preformance cost will only manifest once the elements are evaluated.
+
         Parameters
         ----------
         self : SpaceTimeMatrix
@@ -416,7 +420,14 @@ class SpaceTimeMatrix:
                 "space": self._obj.chunksizes["space"][0],
                 "time": self._obj.chunksizes["time"][0],
             }
-        self._obj = self._obj.sortby(self._obj.order)
+        with warnings.catch_warnings():
+            # Trying to supporess only
+            # [...]/lib/python3.12/site-packages/xarray/core/indexing.py:1620: PerformanceWarning:
+            # Slicing with an out-of-order index is generating [...] times more chunks
+            # but unable to find the warning category.
+            #warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
+            warnings.simplefilter(action="ignore")
+            self._obj = self._obj.sortby(self._obj.order)
         self._obj = self._obj.chunk(chunks)
 
         return self._obj
