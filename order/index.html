@@ -9,8 +9,10 @@
       
       
       
-        <link rel="prev" href="../CODE_OF_CONDUCT/">
+        <link rel="prev" href="../operations/">
       
+      
+        <link rel="next" href="../notebooks/demo_operations_stm/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -18,7 +20,7 @@
     
     
       
-        <title>Change Log - Space-Time Matrix Tools Documentation</title>
+        <title>Ordering an STM - Space-Time Matrix Tools Documentation</title>
       
     
     
@@ -72,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#change-log" class="md-skip">
+        <a href="#ordering-an-stm" class="md-skip">
           Skip to content
         </a>
       
@@ -107,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Change Log
+              Ordering an STM
             
           </span>
         </div>
@@ -224,10 +226,12 @@
         
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../stm_init/" class="md-tabs__link">
           
   
@@ -278,11 +282,9 @@
         
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="./" class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../CHANGELOG/" class="md-tabs__link">
         
   
     
@@ -435,23 +437,28 @@
       
   
   
+    
   
   
+  
     
     
     
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -462,7 +469,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             Usage
@@ -515,10 +522,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../order/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Ordering an STM
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -527,6 +554,71 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-element-order-is-important" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why element order is important
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-are-elements-reordered" class="md-nav__link">
+    <span class="md-ellipsis">
+      How are elements reordered
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ordering-existing-stmat" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ordering existing stmat
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ordering-new-stmat" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ordering new stmat
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#effect-on-processing-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      Effect on processing time
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -717,19 +809,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../CHANGELOG/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -738,7 +821,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -763,6 +845,59 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-element-order-is-important" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why element order is important
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-are-elements-reordered" class="md-nav__link">
+    <span class="md-ellipsis">
+      How are elements reordered
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ordering-existing-stmat" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ordering existing stmat
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ordering-new-stmat" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ordering new stmat
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#effect-on-processing-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      Effect on processing time
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -782,25 +917,40 @@
   
 
 
-<h1 id="change-log">Change Log</h1>
-<p>All notable changes to this project will be documented in this file.
-This project adheres to <a href="http://semver.org/">Semantic Versioning</a>.</p>
-<p>[0.1.0] - 2023-11-19</p>
-<hr />
-<ul>
-<li>
-<p>Added</p>
-<p>The first version of the STMTools package. The following functionalities are implemented:</p>
-<ul>
-<li>Data loading function from csv files;</li>
-<li>Subset function based on thresholding and polygons;</li>
-<li>Enrichment function from polygons;</li>
-<li>Dimension regulating function;</li>
-<li>Metadata registration function;</li>
-<li>Relevant docs and tests.</li>
-</ul>
-</li>
-</ul>
+<h1 id="ordering-an-stm">Ordering an STM</h1>
+<p>STMTools supports (re)ordering the elements in an STM.</p>
+<h2 id="why-element-order-is-important">Why element order is important</h2>
+<p>The data elements in an STM can be ordered according to a wide variety aspects, such as time, horizontal before vertical, or classification. The choice of order can have a significant impact on the performance of operations applied to the data.</p>
+<p>An important consideration is that operations often don't have to be applied to the complete dataset. An STM is always loaded per chunk and an operation may be able to ignore a chunk based on its metadata, such as its bounding box. It can be beneficial to group elements into chunks that will usually be processed or ignored together.</p>
+<p>Our operations often prefer elements to be ordered by spatial coherency. For example, to enrich or subset an STM, the element positions will have to be compared to polygons. Ideally, we only want to process elements that are near the query polygon.</p>
+<h2 id="how-are-elements-reordered">How are elements reordered</h2>
+<p>When applying spatial ordering, we order the elements according to their Morton code. A Morton code is a single integer representation of a higher dimensional coordinate. The following image shows a few sequences of Morton codes as a polyline for a few small sets of 2D points.</p>
+<p><img alt="Morton orders" src="../img/Four-level_Z.png" /></p>
+<p>The translation to Morton code can be direct when the point coordinates are integers, such as pixel coordinates. Floating point coordinates must be scaled and truncated to integer values first. The choice of scale factor determines the resolution of the Morton code.</p>
+<p>Note that for a detailed dataset, a close group of points could be assigned the same Morton code, depending on the choice of scale factor. These points will be grouped together after ordering, but their internal order will not be strictly determined. In other words, we cannot detemine beforehand what their order will be, but they will not be separated by points with a different Morton code.</p>
+<h2 id="ordering-existing-stmat">Ordering existing stmat</h2>
+<p>Reordering an existing STM is very straightforward.
+If the coordinates are integer values, such as the pixel coordinates <code>X</code> and <code>Y</code>, the STM can be reordered as follows:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">stmat_ordered</span> <span class="o">=</span> <span class="n">stmat_xy</span><span class="o">.</span><span class="n">stm</span><span class="o">.</span><span class="n">reorder</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;Y&#39;</span><span class="p">)</span>
+</code></pre></div>
+<p>If the coordinates are floating point coordinates, such as longitude and latitude, you must choose a scale factor for each coordinate such that points that are at least a unit distance apart in either direction can be differentiated by their Morton code. For example, a scale factor of <code>1.1*10^5</code> on the latitude coordinate means that points that are at least 1 meter apart will be assigned a different Morton code.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">stmat_ordered</span> <span class="o">=</span> <span class="n">stmat_lonlat</span><span class="o">.</span><span class="n">stm</span><span class="o">.</span><span class="n">reorder</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;lon&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;lat&#39;</span><span class="p">,</span> <span class="n">xscale</span><span class="o">=</span><span class="mf">1.5</span><span class="o">*</span><span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="mi">5</span><span class="p">),</span> <span class="n">yscale</span><span class="o">=</span><span class="mf">1.7</span><span class="o">*</span><span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="mi">5</span><span class="p">))</span>
+</code></pre></div>
+<p>Reordering the STM is actually a two-step process: computing the Morton codes and sorting the STM. You can also apply these steps separately:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">stmat_ordered</span> <span class="o">=</span> <span class="n">stmat_ar</span><span class="o">.</span><span class="n">stm</span><span class="o">.</span><span class="n">get_order</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;azimuth&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;range&#39;</span><span class="p">,</span> <span class="n">xscale</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">yscale</span><span class="o">=</span><span class="mi">17</span><span class="p">)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">stmat_ordered</span> <span class="o">=</span> <span class="n">stmat_ordered</span><span class="o">.</span><span class="n">sortby</span><span class="p">(</span><span class="n">stmat_ordered</span><span class="o">.</span><span class="n">order</span><span class="p">)</span>
+</code></pre></div>
+<p>This process will cut the chunks into many small pieces and reorder those pieces. It does not combine them into bigger chunks. The <code>reorder</code> function above will also rechunk the data using the same chunk sizes as before reordering.</p>
+<h2 id="ordering-new-stmat">Ordering new stmat</h2>
+<p>Reading and writing data to disk can cost a significant amount of time. It is usually beneficial not to overwrite existing data unless necessary. If you intend to apply spatial ordering to your STM, we advise doing so before writing your data to disk.</p>
+<p>The following example selects some points of a sarxarray, reorders then, and only then writes them to disk:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">stmat</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">slcstack</span><span class="o">.</span><span class="n">point_selection</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;amplitude_dispersion&#39;</span><span class="p">)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">stmat</span> <span class="o">=</span> <span class="n">stmat</span><span class="o">.</span><span class="n">stm</span><span class="o">.</span><span class="n">reorder</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;azimuth&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;range&#39;</span><span class="p">,</span> <span class="n">xscale</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">yscale</span><span class="o">=</span><span class="mi">17</span><span class="p">)</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">stmat</span><span class="o">.</span><span class="n">to_zarr</span><span class="p">(</span><span class="s1">&#39;stm.zarr&#39;</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="effect-on-processing-time">Effect on processing time</h2>
+<p>The example notebooks contain an example of the effect on processing time of ordering the STM: <a href="../notebooks/demo_order_stm/">Example Ordering notebook</a></p>
+<p>This notebook also shows when ordering may not yield significant benefits. As a rule of thumb, ordering is expected to be beneficial when the chunks are small relative to the size and spatial extent of the data. In this case, reordering can reduce the spatial extent of the chunks while keeping their size, i.e. number of elements, the same.</p>
 
 
 

@@ -33,13 +33,13 @@ A subset of an STM can be obtained based on 1) thresholding on an attribute, or 
 For example, select entries with `pnt_enscoh` higher than 0.7:
 
 ```python
-stmat_subset = stmat.stm.subset(method="threshold", var="pnt_enscoh", threshold='>0.7')
+stmat_subset = stmat.stm.subset(method='threshold', var='pnt_enscoh', threshold='>0.7')
 ```
 
 This is equivalent to Xarray filtering:
 
 ```python
-mask = stmat["pnt_enscoh"] > 0.7
+mask = stmat['pnt_enscoh'] > 0.7
 mask = mask.compute()
 stmat_subset = stmat.where(mask, drop=True)
 ``` 
@@ -68,7 +68,7 @@ Use `regulate_dims` to add a missing `space` or `time` dimension.
 ```python
 # An STM witout time dimension
 nspace = 10
-stm_only_space = xr.Dataset(data_vars=dict(data=(["space"], np.arange(nspace))))
+stm_only_space = xr.Dataset(data_vars=dict(data=(['space'], np.arange(nspace))))
 
 stm_only_space
 ```
@@ -98,6 +98,6 @@ Data variables:
 Use `register_metadata` to assign metadata to an STM by a Python dictionary.
 
 ```python
-metadata_normal = dict(techniqueId="ID0001", datasetId="ID_datasetID", crs=4326)
+metadata_normal = dict(techniqueId='ID0001', datasetId='ID_datasetID', crs=4326)
 stmat_with_metadata = stmat.stm.register_metadata(metadata_normal)
 ```
