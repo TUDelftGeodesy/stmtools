@@ -1,11 +1,11 @@
 # STMtools: Space Time Matrix Toolbox
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7717084.svg)](https://doi.org/10.5281/zenodo.7717084)
-[![PyPI](https://img.shields.io/pypi/v/sarxarray.svg?colorB=blue)](https://pypi.python.org/project/sarxarray/)
+[![PyPI](https://img.shields.io/pypi/v/stmtools.svg?colorB=blue)](https://pypi.python.org/project/stmtools/)
 [![Build](https://github.com/TUDelftGeodesy/stmtools/actions/workflows/build.yml/badge.svg)](https://github.com/TUDelftGeodesy/stmtools/actions/workflows/build.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=MotionbyLearning_stmtools&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=MotionbyLearning_stmtools)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8027/badge?)](https://www.bestpractices.dev/projects/8027)
-[![License](https://img.shields.io/github/license/TUDelftGeodesy/sarxarray)](https://opensource.org/licenses/Apache-2.0)
+[![License](https://img.shields.io/github/license/TUDelftGeodesy/stmtools)](https://opensource.org/licenses/Apache-2.0)
 
 STMTools (Space-Time Matrix Tools) is an Xarray extension for Space-Time Matrix (*Bruna et al., 2021; van Leijen et al., 2021*). It provides tools to read, write, enrich, and manipulate a Space-Time Matrix (STM).
 
