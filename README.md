@@ -3,7 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7717084.svg)](https://doi.org/10.5281/zenodo.7717084)
 [![PyPI](https://img.shields.io/pypi/v/stmtools.svg?colorB=blue)](https://pypi.python.org/project/stmtools/)
 [![Build](https://github.com/TUDelftGeodesy/stmtools/actions/workflows/build.yml/badge.svg)](https://github.com/TUDelftGeodesy/stmtools/actions/workflows/build.yml)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=MotionbyLearning_stmtools&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=MotionbyLearning_stmtools)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=TUDelftGeodesy_stmtools&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=TUDelftGeodesy_stmtools)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8027/badge?)](https://www.bestpractices.dev/projects/8027)
 [![License](https://img.shields.io/github/license/TUDelftGeodesy/stmtools)](https://opensource.org/licenses/Apache-2.0)
 
