@@ -40,24 +40,33 @@ bibliography: paper.bib
 
 ## Summary
 
-Interferometry Synthetic Aperture Radar (InSAR) is a crucial technology for monitoring ground surface deformation. It has essential value in various applications, such as civil-infrastructure stability [@chang2014detection; @chang2017railway], hydrocarbons extraction [@fokker2016application; @ZHANG2022102847], etc. To efficiently process and analyze these datasets, researchers has proposed the Space-Time Matrix (STM) format for InSAR datasets [@Bruna2021, @vanLeijen2021], which enanbles the intergration of the contextual information with the InSAR data to reveal the mechanisms driving deformation.  
+Interferometry Synthetic Aperture Radar (InSAR) is a commonly used technology for monitoring ground surface deformation in various applications, such as civil-infrastructure stability [@chang2014detection; @chang2017railway], hydrocarbons extraction [@fokker2016application; @ZHANG2022102847]. InSAR observations typically come in the form of tabular datasets, with each row representing a measurement point and columns representing the properties of the measurement point. This format mixes the spatial and temporal dimensions, which makes it challenging to integrate InSAR data with other spatial and/or temporal datasets, such as cadastral data, weather data, etc. 
+
+Researchers have thus proposed the Space-Time Matrix (STM) formalism for InSAR datasets [@Bruna2021; @vanLeijen2021]. This framework consists in a representation of the InSAR data with the spatial and temporal dimensions separated. The STM formalism facilitates the analysis of InSAR data in combination with space- and/or time-dependent datasets from other sources (the "contextual information"), by providing a framework for integrating the contextual data. In the context of ground surface deformation, the framework facilitates the identification of the mechanisms driving deformation.
 
 ## Statement of Need
 
-Typiclally, modern time-series InSAR methods is able to provides millions of observation points in a single dataset. However, due the complex and ambiguous nature of InSAR observations, interpretation of these datasets is challenging. [@hanssen2001radar] Under the STM framework, contextual information such as temperature, precipitation, land-use, etc. can be integrated with InSAR data. This can enable a better understanding on the driving mechanisms of the ground deformation, resulting in more reliable and accurate interpretation of the InSAR data. [@Bruna2021, @vanLeijen2021]
+Modern time-series InSAR methods provide millions of observation points in a single dataset. However, interpretation of these datasets is challenging due to the complex and ambiguous nature of InSAR observations. [@hanssen2001radar] Under STM format, contextual information such as temperature, precipitation, and land-use can be integrated with InSAR data. This facilitates a better interpretation of InSAR data, resulting in a reliable and accurate understanding of the mechanisms of ground deformation. [@Bruna2021, @vanLeijen2021]
 
-To implement the STM format in Python, we developed the `STMTools` package. `STMTools` is developed as an extension of `Xarray`, leveraging `Xarray`'s support for labeled multi-dimensional arrays for the Space-Time concept. `STMTools` provides a set of tools to efficiently connect the InSAR data with various contextual information, such as cadastral data, weather data, etc. The package also utilizes `Dask` for parallel computing, enabling the processing of large-scale InSAR datasets.
+To facilitate the analysis of InSAR datasets following the STM formalism in Python, we developed the `STMTools` package in Python-- as an extension of `Xarray`-- leveraging `Xarray`'s support for labeled multi-dimensional arrays for the Space-Time dimensions. `STMTools` provides a set of tools to efficiently connect the InSAR data with various contextual information, such as cadastral data and weather data. The Xarray `Dataset` data structure is used to group InSAR data and the contextual information under shared dimension coordinates (space and/or time). By building on Xarray, STMTools can also leverage `Dask` for parallel computing, enabling the processing of large-scale InSAR datasets.
+
+## Main Functionalities
+
+The main functionalities of `STMTools` are summarized as follows:
+
+- [I/O operations](https://tudelftgeodesy.github.io/stmtools/stm_init/)
+
+- [InSAR Operations](https://tudelftgeodesy.github.io/stmtools/operations/)
+
+- [Reorder STM by Morton Ordering](https://tudelftgeodesy.github.io/stmtools/order/)
 
 ## Tutorial
 
-We provide a tutorial as a Jupyter notebook to demonstrate the basic functionalities of `STMTools`:
+We provide the following tutorials, also available as Jupyter notebooks, to demonstrate the functionalities of `STMTools`:
 
-- [Load InSAR data in STM format](https://tudelftgeodesy.github.io/stmtools/stm_init/)
+- [Basic operations](https://tudelftgeodesy.github.io/stmtools/notebooks/demo_operations_stm/)
 
-- [Basic operations with an STM](https://tudelftgeodesy.github.io/stmtools/operations/)
-
-- [Reorder STM in Morton Ordering](https://tudelftgeodesy.github.io/stmtools/order/)
-
+- [Reordering STM by Morton Ordering](https://tudelftgeodesy.github.io/stmtools/notebooks/demo_order_stm/)
 
 ## Acknowledgements
 
