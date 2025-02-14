@@ -70,6 +70,6 @@ We provide the following tutorials, also available as Jupyter notebooks, to demo
 
 ## Acknowledgements
 
-The authors express sincere gratitude to the Dutch Research Council (Nederlandse Organisatie voor Wetenschappelijk Onderzoek, NWO) for their generous funding of the `STMTools` development through the Collaboration in Innovative Technologies (CIT 2021) Call, grant NLESC.CIT.2021.006. Special thanks to SURF for providing valuable computational resources for `STMTools` testing.
+The authors express sincere gratitude to the Dutch Research Council (Nederlandse Organisatie voor Wetenschappelijk Onderzoek, NWO) for their generous funding of the `STMTools` development through the Collaboration in Innovative Technologies (CIT 2021) Call, grant NLESC.CIT.2021.006. Special thanks to SURF for providing valuable computational resources for `STMTools` testing via grant EINF-2051, EINF-4287 and EINF-6883.
 
 ## References
