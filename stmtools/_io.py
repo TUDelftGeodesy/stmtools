@@ -36,8 +36,8 @@ def from_csv(
           E.g. Latitude, Longitude and height columns are named as "pnt_lat", "pnt_lon" and
           "pnt_height", sharing the same RE pattern "^pnt_";
         2. Per space-time attribute, a common RE pattern is shared by all columns. E.g. for the
-          time-series of amplitude data, the column names are "amp_20100101", "amp_20100110",
-          "amp_20100119" ..., where "^amp_" is the common RE pattern;
+          time-series of amplitude data, the column names are "a_20100101", "a_20100110",
+          "a_20100119" ..., where "^a_" is the common RE pattern;
         3. There is no temporal-only (i.e. 1-row attribute) attribute present in the csv file.
 
     `from_csv` does not retrieve time stamps based on column names. The `time` coordinate of
