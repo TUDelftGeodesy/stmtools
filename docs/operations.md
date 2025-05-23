@@ -4,9 +4,15 @@ STMTools supports various operations on an STM.
 
 ## Enrich an STM
 
-Contextual data can be added to an STM by enrichment. At present, STMTools supports enriching an STM by static polygons.
+Contextual data can be added to an STM by enrichment. STMTools supports enriching an STM by static polygons or a dataset.
 
-For example, if soil type data (`soil_map.gpkg`) is available together with an STM, one can first read `soil_map.gpkg` using the `GeoPandas` library as a `GeoDataFrame`, then add the soil type and corresponding type ID to the STM, using the `enrich_from_polygon` function.
+### Enrich from a polygon
+
+STMTools supports enriching an STM by static polygons. For example, if soil type
+data (`soil_map.gpkg`) is available together with an STM, one can first read
+`soil_map.gpkg` using the `GeoPandas` library as a `GeoDataFrame`, then add the
+soil type and corresponding type ID to the STM, using the `enrich_from_polygon`
+function.
 
 ```python
 import geopandas as gpd
@@ -22,6 +28,34 @@ In case of a large file `soil_map.gpkg`, one can directly pass the file path to 
 path_polygon = Path('soil_map.gpkg')
 fields_to_query = ['soil_type', 'type_id']
 stmat_enriched = stmat.stm.enrich_from_polygon(path_polygon, fields_to_query)
+```
+
+### Enrich from a dataset
+
+STMTools supports enriching an STM by a dataset or a data array. For example, if
+a dataset (`meteo_data.nc`) is available together with an STM, one can first
+read `meteo_data.nc` using the `Xarray` library, then add the dataset to the
+STM, using the `enrich_from_dataset` function.
+
+```python
+import xarray as xr
+dataset = xr.open_dataset('meteo_data.nc')
+
+# one field
+stmat_enriched = stmat.stm.enrich_from_dataset(dataset, 'temperature')
+
+# multiple fields
+stmat_enriched = stmat.stm.enrich_from_dataset(dataset, ['temperature', 'precipitation'])
+```
+
+By default `"nearest"` is used for the interpolation. But you can choose [any
+method provided by
+Xarray](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.interp.html).
+For example, if you want to use `"linear"` interpolation, you can do it like
+this:
+
+```python
+stmat_enriched = stmat.stm.enrich_from_dataset(dataset, 'temperature', method='linear')
 ```
 
 ## Subset an STM
@@ -42,7 +76,7 @@ This is equivalent to Xarray filtering:
 mask = stmat['pnt_enscoh'] > 0.7
 mask = mask.compute()
 stmat_subset = stmat.where(mask, drop=True)
-``` 
+```
 
 ### Subset by a polygon
 
