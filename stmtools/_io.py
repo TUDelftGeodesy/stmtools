@@ -112,7 +112,7 @@ def from_csv(
                 # specify str type for point id
                 # otherwise it will be loaded as objest type
                 # then when saving to zarr, a redundant loading is needed to determine type
-                da_pnt = ddf[column].to_dask_array(lengths=chunks).astype(str)
+                da_pnt = ddf[column].astype(str).to_dask_array(lengths=chunks).astype(str)
             else:
                 da_pnt = ddf[column].to_dask_array(lengths=chunks)
             stmat = stmat.assign({column: (("space"), da_pnt)})
