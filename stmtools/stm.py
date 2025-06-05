@@ -48,18 +48,15 @@ class SpaceTimeMatrix:
     def regulate_dims(self, space_label=None, time_label=None):
         """Regulate the dimension of a Space-Time Matrix instance.
 
-        An STM should have two dimensions: "space" and "time".
-
-        If the inupt argument `space_label` or `time_label` is specified,
-        and that dimension exists, the function will rename that dimension to "space" or "time".
-
-        If either `space_label` or `time_label` are None, a "space" or "time" dimension with
-        size 1 will be created.
-
-        If both `space_label` or `time_label` are None. Data variables will also be regulated.
-
-        For data variables with a name started with "pnt_", they are regared as
-        point-only attribute and will not be affected by "time" dimension expansion.
+        An STM should have two dimensions: `"space"` and `"time"`. If the inupt
+        argument `space_label` or `time_label` is specified, and that dimension
+        exists, the function will rename that dimension to "space" or "time". If
+        either `space_label` or `time_label` are None, a "space" or "time"
+        dimension with size 1 will be created. If both `space_label` or
+        `time_label` are None. Data variables will also be regulated. For data
+        variables with a name started with "pnt_", they are regared as
+        point-only attribute and will not be affected by "time" dimension
+        expansion.
 
         Parameters
         ----------
@@ -113,16 +110,23 @@ class SpaceTimeMatrix:
         ----------
         method : str
             Method of subsetting. Choose from "threshold", "density" and "polygon".
+
             - threshold: select all space entries with a threshold criterion, e.g.
+                ```python
                 data_xr.stm.subset(method="threshold", var="thres", threshold='>1')
+                ```
             - density: select one point in every [dx, dy] cell, e.g.
+                ```python
                 data_xr.stm.subset(method="density", dx=0.1, dy=0.1)
+                ```
             - polygon: select all space entries inside a given polygon, e.g.
+                ```python
                 data_xr.stm.subset(method='polygon', polygon=path_polygon_file)
-                or
+                # or
                 import geopandas as gpd
                 polygon = gpd.read_file(path_polygon_file)
                 data_xr.stm.subset(method='polygon', polygon=polygon)
+                ```
         **kwargs:
             - when method="threshold": data variable "var" and  threshold "threshold"
             - when method="density": x and y density size: "dx" and "dy"
@@ -187,11 +191,9 @@ class SpaceTimeMatrix:
         """Enrich the SpaceTimeMatrix from one or more attribute fields of a (multi-)polygon.
 
         Each attribute in fields will be assigned as a data variable to the STM.
-
-        If a point of the STM falls into the given polygon, the value of the specified field will
-        be added.
-
-        For space entries outside the (multi-)polygon, the value will be None.
+        If a point of the STM falls into the given polygon, the value of the
+        specified field will be added. For space entries outside the
+        (multi-)polygon, the value will be None.
 
         Parameters
         ----------
@@ -200,9 +202,9 @@ class SpaceTimeMatrix:
         fields : str or list of str
             Field name(s) in the (multi-)polygon for enrichment
         xlabel : str, optional
-            Name of the x-coordinates of the STM, by default "lon"
+            Name of the x-coordinates of the STM, by default `"lon"`
         ylabel : str, optional
-            Name of the y-coordinates of the STM, by default "lat"
+            Name of the y-coordinates of the STM, by default `"lat"`
 
         Returns
         -------
@@ -332,7 +334,7 @@ class SpaceTimeMatrix:
         keys : Union[str, Iterable]
             Keys of the data variables to register
         datatype : str in DataVarTypes
-            String of the datatype. Choose from ["obsData", "auxData", "pntAttrib", "epochAttrib"].
+            String of the datatype. Choose from `["obsData", "auxData", "pntAttrib", "epochAttrib"]`.
 
         Returns
         -------
@@ -353,12 +355,12 @@ class SpaceTimeMatrix:
     def get_order(self, xlabel="azimuth", ylabel="range", xscale=1.0, yscale=1.0):
         """Compute an ordering on the points based on coordinates with xlabel and ylabel.
 
-        This order is stored in a (new) point attribute "order".
-
-        Note that this ordering is most intuitive for integer coordinates (e.g. pixel coordinates).
-        For float coordinates (e.g. lat-lon), the coordinates should be scaled to determine the
-        resolution of the ordering: only the whole-number part influences the order.
-        While coordinates could also be offset, this has limited effect on the relative order.
+        This order is stored in a (new) point attribute "order". Note that this
+        ordering is most intuitive for integer coordinates (e.g. pixel
+        coordinates). For float coordinates (e.g. lat-lon), the coordinates
+        should be scaled to determine the resolution of the ordering: only the
+        whole-number part influences the order. While coordinates could also be
+        offset, this has limited effect on the relative order.
 
         Parameters
         ----------
@@ -388,13 +390,14 @@ class SpaceTimeMatrix:
     def reorder(self, xlabel="azimuth", ylabel="range", xscale=1.0, yscale=1.0):
         """Compute and apply an ordering on the points based on coordinates with xlabel and ylabel.
 
-        Note that this ordering is most intuitive for integer coordinates (e.g. pixel coordinates).
-        For float coordinates (e.g. lat-lon), the coordinates should be scaled to determine the
-        resolution of the ordering: only the whole-number part influences the order.
-        While coordinates could also be offset, this has limited effect on the relative order.
-
-        Also note that reordering a dataset may be an expensive operation. Because it is applied
-        lazily, this preformance cost will only manifest once the elements are evaluated.
+        Note that this ordering is most intuitive for integer coordinates (e.g.
+        pixel coordinates). For float coordinates (e.g. lat-lon), the
+        coordinates should be scaled to determine the resolution of the
+        ordering: only the whole-number part influences the order. While
+        coordinates could also be offset, this has limited effect on the
+        relative order. Also note that reordering a dataset may be an expensive
+        operation. Because it is applied lazily, this preformance cost will only
+        manifest once the elements are evaluated.
 
         Parameters
         ----------
@@ -411,7 +414,7 @@ class SpaceTimeMatrix:
 
         """
         self._obj = self.get_order(xlabel, ylabel, xscale, yscale)
-        
+
         # Sorting may split up the chunks, which may interfere with later operations
         # so we immediately restore the chunk sizes.
         chunks = {"space": self._obj.chunksizes["space"][0]}
@@ -440,8 +443,8 @@ class SpaceTimeMatrix:
         """Enrich the SpaceTimeMatrix from one or more fields of a dataset.
 
         scipy is required. if dataset is raster, it uses
-        _enrich_from_raster_block to do interpolation using method. if dataset
-        is point, it uses _enrich_from_points_block to find the nearest points
+        `_enrich_from_raster_block` to do interpolation using method. if dataset
+        is point, it uses `_enrich_from_points_block` to find the nearest points
         in space and time using Euclidean distance.
 
         Parameters
@@ -451,8 +454,9 @@ class SpaceTimeMatrix:
         fields : str or list of str
             Field name(s) in the dataset for enrichment
         method : str, optional
-            Method of interpolation, by default "nearest", see
-            https://docs.xarray.dev/en/stable/generated/xarray.Dataset.interp.html
+            Method of interpolation, by default `"nearest"`, see [xarray
+            interpolation
+            methods](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.interp.html)
 
         Returns
         -------
