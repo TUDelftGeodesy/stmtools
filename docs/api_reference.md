@@ -4,9 +4,9 @@ hide:
 ---
 #
 
-Here you find the API reference for the major components of `STMtools`.
+Here is the API reference for the `stmtools` package.
 
-## **Space Time matrix module**
+## **Space Time Matrix module**
 
 ::: stmtools.stm.SpaceTimeMatrix
 
