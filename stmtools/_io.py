@@ -25,47 +25,47 @@ def from_csv(
     """Initiate an STM instance from a csv file.
 
     The specified csv file will be loaded using `dask.dataframe.read_csv` with a fixed blocksize.
-
     The columns of the csv file will be classified into coordinates, and data variables.
-
     This classification is performed by Regular Expression (RE) pattern matching according to
-      three variables: `space_pattern`, `spacetime_pattern` and `coords_cols`.
-
+    three variables: `space_pattern`, `spacetime_pattern` and `coords_cols`.
     The following assumptions are made to the column names of the csv file:
-        1. All columns with space-only attributes share the same RE pattern in the column names.
-          E.g. Latitude, Longitude and height columns are named as "pnt_lat", "pnt_lon" and
-          "pnt_height", sharing the same RE pattern "^pnt_";
-        2. Per space-time attribute, a common RE pattern is shared by all columns. E.g. for the
-          time-series of amplitude data, the column names are "a_20100101", "a_20100110",
-          "a_20100119" ..., where "^a_" is the common RE pattern;
-        3. There is no temporal-only (i.e. 1-row attribute) attribute present in the csv file.
 
-    `from_csv` does not retrieve time stamps based on column names. The `time` coordinate of
-      the output STM will be a monotonic integer series starting from 0.
+    1. All columns with space-only attributes share the same RE pattern in the column names.
+        E.g. Latitude, Longitude and height columns are named as "pnt_lat", "pnt_lon" and
+        "pnt_height", sharing the same RE pattern "^pnt_";
+    2. Per space-time attribute, a common RE pattern is shared by all columns. E.g. for the
+        time-series of amplitude data, the column names are "a_20100101", "a_20100110",
+        "a_20100119" ..., where "^a_" is the common RE pattern;
+    3. There is no temporal-only (i.e. 1-row attribute) attribute present in the csv file.
 
-    Args:
-    ----
-        file (str | Path): Path to the csv file.
-        space_pattern (str, optional): RE pattern to match space attribute columns.
-          Defaults to "^pnt_".
-        spacetime_pattern (dict | None, optional): A dictionay mapping RE patterns of each
-          space-time attribute to corresponding variable names. Defaults to None, which means
-          the following map will be applied:
-          {"^d_": "deformation", "^a_": "amplitude", "^h2ph_": "h2ph"}.
-        coords_cols (list | dict, optional): List of columns to be used as space coordinates.
-          When `coords_cols` is a dictionary, a reaming will be performed per coordinates.
-          Defaults to None, then the following renaming will be performed:
-          "{"pnt_lat": "lat", "pnt_lon": "lon"}"
-        output_chunksize (dict | None, optional): Chunksize of the output. Defaults to None,
-          then the size of the first chunk in the DaskDataFrame will be used, up-rounding to
-          the next 5000.
-        blocksize (int | str | None, optional): Blocksize to load the csv.
-          Defaults to 200e6 (in bytes). See the documentation of
-          [dask.dataframe.read_csv](https://docs.dask.org/en/stable/generated/dask.dataframe.read_csv.html)
+    Parameters
+    ----------
+    file: str | Path
+        Path to the csv file.
+    space_pattern: str, optional
+        RE pattern to match space attribute columns. Defaults to "^pnt_".
+    spacetime_pattern: dict | None, optional
+        A dictionay mapping RE patterns of each space-time attribute to
+        corresponding variable names. Defaults to None, which means the
+        following map will be applied: {"^d_": "deformation", "^a_":
+        "amplitude", "^h2ph_": "h2ph"}.
+    coords_cols: list | dict, optional
+        List of columns to be used as space coordinates. When `coords_cols` is a
+        dictionary, a reaming will be performed per coordinates. Defaults to
+        None, then the following renaming will be performed: "{"pnt_lat": "lat",
+        "pnt_lon": "lon"}"
+    output_chunksize: dict | None, optional
+        Chunksize of the output. Defaults to None, then the size of the first
+        chunk in the DaskDataFrame will be used, up-rounding to the next 5000.
+    blocksize: int | str | None, optional
+        Blocksize to load the csv. Defaults to 200e6 (in bytes). See the
+        documentation of
+        [dask.dataframe.read_csv](https://docs.dask.org/en/stable/generated/dask.dataframe.read_csv.html)
 
-    Returns:
+    Returns
     -------
-        xr.Dataset: Output STM instance
+    xr.Dataset
+        Output STM instance
 
     """
     # Load csv as Dask DataFrame
