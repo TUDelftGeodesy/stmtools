@@ -67,7 +67,11 @@ STM can also be intiated from a csv file. During this process, the following ass
     "amp_20100119" ..., where "^amp_" is the common RE pattern;
 3. There is no temporal-only (i.e. 1-row attribute) attribute present in the csv file.
 
-Consider the [example csv data](./notebooks/data/example.csv). It can be loaded by `from_csv`:
+Consider the [example csv data](./notebooks/data/example.csv). In this file, the
+rows are points and the columns are time series of `deformation`, `amplitude`,
+and `h2ph` variables. The columns names for these variables are `d_<timestamp>`,
+`a_<timestamp>`, and `h2ph_<timestamp>` respectively. We can read this csv file
+as an STM object in xarray format using the function `from_csv()`:
 
 ```python
 import stmtools
@@ -98,6 +102,48 @@ Data variables: (12/13)
     h2ph                   (space, time) float64 dask.array<chunksize=(2500, 11), meta=np.ndarray>
 ```
 
+By default, time values are extracted from the column names assumeing that the
+names are in the format of `a_<YYYYMMDD>`, `d_<YYYYMMDD>`, and
+`h2ph_<YYYYMMDD>`. Note that only a seperator "`_`", and a date format of
+`YYYYMMDD` are supported. But if the names are different, for example
+`amp_<YYYYMMDD>`, `def_<YYYYMMDD>`, and `h2ph_<YYYYMMDD>`, like [example2 csv
+data](./notebooks/data/example2.csv), you can specify `spacetime_pattern`
+argument as a dictionay mapping RE patterns of each space-time attribute to
+corresponding variable names:
+
+```python
+import stmtools
+stm = stmtools.from_csv('example2.csv', spacetime_pattern={
+    '^amp_': 'amplitude',
+    '^def_': 'deformation',
+    '^h2ph_': 'h2ph'
+})
+```
+
+```output
+stm
+<xarray.Dataset> Size: 910kB
+Dimensions:                (space: 2500, time: 11)
+Coordinates:
+  * space                  (space) int64 20kB 0 1 2 3 4 ... 2496 2497 2498 2499
+  * time                   (time) datetime64[ns] 88B 2016-03-27 ... 2016-07-15
+    lat                    (space) float64 20kB dask.array<chunksize=(2500,), meta=np.ndarray>
+    lon                    (space) float64 20kB dask.array<chunksize=(2500,), meta=np.ndarray>
+Data variables: (12/13)
+    pnt_id                 (space) <U1 10kB dask.array<chunksize=(2500,), meta=np.ndarray>
+    pnt_flags              (space) int64 20kB dask.array<chunksize=(2500,), meta=np.ndarray>
+    pnt_line               (space) int64 20kB dask.array<chunksize=(2500,), meta=np.ndarray>
+    pnt_pixel              (space) int64 20kB dask.array<chunksize=(2500,), meta=np.ndarray>
+    pnt_height             (space) float64 20kB dask.array<chunksize=(2500,), meta=np.ndarray>
+    pnt_demheight          (space) float64 20kB dask.array<chunksize=(2500,), meta=np.ndarray>
+    ...                     ...
+    pnt_enscoh             (space) float64 20kB dask.array<chunksize=(2500,), meta=np.ndarray>
+    pnt_ampconsist         (space) float64 20kB dask.array<chunksize=(2500,), meta=np.ndarray>
+    pnt_linear             (space) float64 20kB dask.array<chunksize=(2500,), meta=np.ndarray>
+    amplitude              (space, time) float64 220kB dask.array<chunksize=(2500, 11), meta=np.ndarray>
+    deformation            (space, time) float64 220kB dask.array<chunksize=(2500, 11), meta=np.ndarray>
+    h2ph                   (space, time) float64 220kB dask.array<chunksize=(2500, 11), meta=np.ndarray>
+```
 
 ## By pixel selection from an image stack
 
